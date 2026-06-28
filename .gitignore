@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.env.local
+coverage
+*.log
+storage/pdf/*.pdf
+storage/typst/*.typ
+storage/typst/*.json
+!.gitkeep

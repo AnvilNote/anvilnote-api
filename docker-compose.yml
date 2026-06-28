@@ -1,0 +1,25 @@
+# Local development database for AnvilNote API.
+# Brings up a self-contained Postgres so the API never depends on a hand-started container.
+# The host port and credentials match DATABASE_URL in .env / .env.example.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: anvilnote-api-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: anvilnote
+    ports:
+      - "55432:5432"
+    volumes:
+      - anvilnote-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d anvilnote"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  anvilnote-pgdata:
