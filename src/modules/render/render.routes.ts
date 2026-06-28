@@ -8,6 +8,6 @@ const controller = new RenderController();
 // Render runs synchronously and returns the finished result directly.
 router.post("/documents/:id/render", asyncHandler((req, res) => controller.renderDocument(req, res)));
 // Look up a past render's recorded outcome by id (result lookup, not polling).
-router.get("/render-jobs/:id", asyncHandler((req, res) => controller.getRenderJob(req, res)));
+router.get("/render-outputs/:id", asyncHandler((req, res) => controller.getRenderOutput(req, res)));
 
 export const renderRouter = router;

@@ -1,27 +1,48 @@
-export type TemplateFieldType = "text" | "date" | "select" | "boolean";
+// Template manifests are owned by the renderer (files under
+// ANVILNOTE_RENDERER_PATH/templates). The API reads and exposes them; it never
+// stores templates in the database.
+
+export type TemplateFieldType = "text" | "textarea" | "date" | "boolean" | "select";
+
+export type TemplateFieldScope = "metadata" | "option";
 
 export type TemplateField = {
   key: string;
   label: string;
   type: TemplateFieldType;
-  required: boolean;
+  scope: TemplateFieldScope;
+  required?: boolean;
+  default?: string | boolean;
   placeholder?: string;
-  defaultValue?: string | boolean | null;
   options?: string[];
 };
 
-export type TemplateConfig = {
-  fields?: TemplateField[];
-  [key: string]: unknown;
+export type TemplateEngine = {
+  kind: "typst-package" | "local";
+  package?: string;
+  entry: string;
 };
 
-export type TemplateRecord = {
-  id: string;
+export type TemplateManifest = {
+  slug: string;
   name: string;
-  description: string | null;
-  config: TemplateConfig | null;
-  typstBody: string | null;
-  isBuiltIn: boolean;
-  createdAt: string;
-  updatedAt: string;
+  description: string;
+  version: string;
+  engine: TemplateEngine;
+  category: string;
+  tags: string[];
+  fonts: string[];
+  headingOffset: number;
+  fields: TemplateField[];
+};
+
+// Summary returned by the list endpoint (drops engine/fonts/headingOffset).
+export type TemplateSummary = {
+  slug: string;
+  name: string;
+  description: string;
+  version: string;
+  category: string;
+  tags: string[];
+  fields: TemplateField[];
 };

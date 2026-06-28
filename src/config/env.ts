@@ -19,6 +19,9 @@ const envSchema = z.object({
   TYPST_STORAGE_DIR: z.string().default("./storage/typst"),
   PDF_STORAGE_DIR: z.string().default("./storage/pdf"),
   ANVILNOTE_RENDERER_PATH: z.string().default("../anvilnote-renderer"),
+  // Fallback template slug when a document has none and the render request
+  // doesn't specify one. Must exist under <renderer>/templates/.
+  DEFAULT_TEMPLATE_SLUG: z.string().default("plain-note"),
   TYPST_BIN: z.string().default("typst"),
   // Render artifacts (generated .typ and .pdf files) older than this are
   // swept on startup and after each render to keep storage bounded.

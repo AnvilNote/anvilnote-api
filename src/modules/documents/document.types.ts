@@ -7,6 +7,7 @@ export type DocumentRecord = {
   title: string;
   content: DocumentContent;
   metadata: Record<string, AnvilMetadataValue>;
+  templateSettings: Record<string, AnvilMetadataValue>;
   templateId: string | null;
   createdAt: string;
   updatedAt: string;

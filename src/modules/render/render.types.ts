@@ -1,14 +1,16 @@
 import type { RenderStatus } from "@prisma/client";
 
-export type RenderOptions = {
+export type RenderExportOptions = {
   pageSize?: "A4" | "Letter";
-  fontPreset?: "sans" | "serif" | "mono";
   includeMetadata?: boolean;
 };
 
-export type RenderJobRecord = {
+export type RenderOutputRecord = {
   id: string;
   documentId: string;
+  templateId: string | null;
+  templateVersion: string | null;
+  format: string;
   status: RenderStatus;
   pdfUrl: string | null;
   typstPath: string | null;

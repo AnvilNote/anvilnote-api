@@ -8,48 +8,44 @@ datasource db {
 }
 
 model Document {
-  id          String    @id @default(cuid())
-  title       String
-  content     Json
-  metadata    Json?
-  typstSource String?
-  templateId  String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id               String         @id @default(cuid())
+  title            String
+  content          Json
+  // Document Metadata: title/author/date/courseName… — kept across templates.
+  metadata         Json?
+  // Template Options: showToc/paperSize… — bound to the current template.
+  templateSettings Json?
+  // Template slug (file-based template, not a DB foreign key).
+  templateId       String?
+  typstSource      String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
-  template    Template? @relation(fields: [templateId], references: [id])
-  renders     RenderJob[]
+  renderOutputs    RenderOutput[]
 }
 
-model Template {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  config      Json?
-  typstBody   String?
-  isBuiltIn   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model RenderOutput {
+  id               String       @id @default(cuid())
+  documentId       String
+  templateId       String?
+  templateVersion  String?
+  format           String       @default("pdf")
+  status           RenderStatus  @default(PROCESSING)
+  typstPath        String?
+  pdfPath          String?
+  pdfUrl           String?
+  error            String?
+  // Immutable snapshots captured at render time.
+  contentSnapshot  Json?
+  metadataSnapshot Json?
+  templateSnapshot Json?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
-  documents   Document[]
-}
-
-model RenderJob {
-  id         String       @id @default(cuid())
-  documentId String
-  status     RenderStatus @default(QUEUED)
-  typstPath  String?
-  pdfPath    String?
-  pdfUrl     String?
-  error      String?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-
-  document   Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document         Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
 }
 
 enum RenderStatus {
-  QUEUED
   PROCESSING
   COMPLETED
   FAILED
