@@ -10,6 +10,8 @@ import { errorMiddleware } from "./middleware/error.middleware";
 import { notFoundMiddleware } from "./middleware/not-found.middleware";
 import { requestIdMiddleware } from "./middleware/request-id.middleware";
 import { sweepRenderArtifacts } from "./lib/storage-cleanup";
+import { prisma } from "./lib/prisma";
+import { ensureSqliteSchema, isSqlite } from "./lib/sqlite-init";
 import { documentRouter } from "./modules/documents/document.routes";
 import { healthRouter } from "./modules/health/health.routes";
 import { renderRouter } from "./modules/render/render.routes";
@@ -21,6 +23,12 @@ export async function createApp() {
     fs.mkdir(env.TYPST_STORAGE_DIR, { recursive: true }),
     fs.mkdir(env.PDF_STORAGE_DIR, { recursive: true }),
   ]);
+
+  // Desktop (embedded SQLite): create the schema on first launch. Cloud
+  // (Postgres) keeps using its own migrations and skips this entirely.
+  if (isSqlite()) {
+    await ensureSqliteSchema(prisma);
+  }
 
   // Sweep stale render artifacts on boot; best-effort, never blocks startup.
   void sweepRenderArtifacts()
