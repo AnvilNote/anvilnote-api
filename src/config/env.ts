@@ -7,6 +7,9 @@ dotenv.config();
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
+  // Bind address. Defaults to all interfaces (unchanged cloud behaviour); the
+  // desktop sidecar sets HOST=127.0.0.1 so it never opens an external port.
+  HOST: z.string().default("0.0.0.0"),
   DATABASE_URL: z.string().min(1),
   CORS_ORIGIN: z
     .string()
