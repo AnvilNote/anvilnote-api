@@ -48,6 +48,82 @@ function mapRenderOutput(output: RenderOutput): RenderOutputRecord {
   };
 }
 
+function normalizeContentShape(content: unknown): unknown[] {
+  if (Array.isArray(content)) {
+    return content as unknown[];
+  }
+  if (content && typeof content === "object") {
+    return [content];
+  }
+  return [];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function clampHeadingLevel(level: number) {
+  return Math.min(Math.max(level, 1), 6);
+}
+
+function normalizeHeadingLevels(content: unknown[], targetMinLevel = 1): unknown[] {
+  let minLevel = Number.POSITIVE_INFINITY;
+
+  const collect = (value: unknown) => {
+    if (Array.isArray(value)) {
+      value.forEach(collect);
+      return;
+    }
+    if (!isRecord(value)) {
+      return;
+    }
+    if (value.type === "heading") {
+      const attrs = isRecord(value.attrs) ? value.attrs : {};
+      const level = typeof attrs.level === "number" ? attrs.level : 1;
+      minLevel = Math.min(minLevel, level);
+    }
+    if (Array.isArray(value.content)) {
+      value.content.forEach(collect);
+    }
+  };
+
+  content.forEach(collect);
+
+  if (
+    !Number.isFinite(minLevel) ||
+    minLevel <= targetMinLevel
+  ) {
+    return content;
+  }
+
+  const shift = minLevel - targetMinLevel;
+
+  const rewrite = (value: unknown): unknown => {
+    if (Array.isArray(value)) {
+      return value.map(rewrite);
+    }
+    if (!isRecord(value)) {
+      return value;
+    }
+
+    const next: Record<string, unknown> = { ...value };
+    if (value.type === "heading") {
+      const attrs = isRecord(value.attrs) ? value.attrs : {};
+      const level = typeof attrs.level === "number" ? attrs.level : 1;
+      next.attrs = {
+        ...attrs,
+        level: clampHeadingLevel(level - shift),
+      };
+    }
+    if (Array.isArray(value.content)) {
+      next.content = value.content.map(rewrite);
+    }
+    return next;
+  };
+
+  return content.map(rewrite);
+}
+
 export class RenderService {
   private readonly documentRepository = new DocumentRepository();
 
@@ -70,10 +146,16 @@ export class RenderService {
 
     const storedMetadata = normalizeRecord(document.metadata);
     const storedSettings = normalizeRecord(document.templateSettings);
+    const metadataOverrides = normalizeRecord(input?.metadata ?? {});
+    const templateSettingsOverrides = normalizeRecord(input?.templateSettings ?? {});
     const optionOverrides = normalizeRecord(input?.options ?? {});
 
-    let meta = applyDefaults(metaFields, storedMetadata, {});
-    const options = applyDefaults(optionFields, storedSettings, optionOverrides);
+    let meta = applyDefaults(metaFields, storedMetadata, metadataOverrides);
+    const options = applyDefaults(
+      optionFields,
+      storedSettings,
+      { ...templateSettingsOverrides, ...optionOverrides },
+    );
 
     // Required-field gate runs before any metadata stripping (400 → no render).
     validateRequiredFields(manifest.fields, { ...meta, ...options });
@@ -84,6 +166,14 @@ export class RenderService {
     if (!includeMetadata) {
       meta = {};
     }
+
+    const normalizedTarget =
+      slug === "plain-note" ? 2 : 1;
+    const content = normalizeHeadingLevels(
+      normalizeContentShape(input?.content ?? document.content),
+      normalizedTarget,
+    );
+    const title = input?.title ?? document.title;
 
     // Synchronous render: the row is a durable record of the outcome, created
     // as PROCESSING so a mid-render failure still leaves an accurate record.
@@ -100,8 +190,8 @@ export class RenderService {
       const result = await runRendererCli({
         document: {
           id: document.id,
-          title: document.title,
-          content: Array.isArray(document.content) ? (document.content as unknown[]) : [],
+          title,
+          content,
         },
         template: { slug, meta, options },
         options: {
@@ -125,7 +215,7 @@ export class RenderService {
             pdfPath: result.pdfPath,
             pdfUrl: `/files/pdf/${path.basename(result.pdfPath)}`,
             error: null,
-            contentSnapshot: (document.content ?? []) as object,
+            contentSnapshot: content as object,
             metadataSnapshot: meta as object,
             templateSnapshot: manifest as object,
           },
