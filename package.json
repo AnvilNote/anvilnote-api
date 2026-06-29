@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
+    "build:desktop": "prisma generate && prisma generate --schema prisma/sqlite.prisma && tsc",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
+    "prisma:generate:sqlite": "prisma generate --schema prisma/sqlite.prisma",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "lint": "eslint .",

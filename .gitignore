@@ -8,3 +8,7 @@ storage/pdf/*.pdf
 storage/typst/*.typ
 storage/typst/*.json
 !.gitkeep
+
+# Desktop SQLite generated client and local db
+src/generated/
+*.db

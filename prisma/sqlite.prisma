@@ -1,0 +1,52 @@
+// Desktop-only Prisma schema (embedded SQLite). The cloud Postgres schema in
+// schema.prisma is the source of truth and is NOT affected by this file.
+//
+// Differences forced by SQLite: no enums (RenderStatus -> String). The generated
+// client is emitted to a separate path so it never clashes with the default
+// @prisma/client used by the cloud build. Selected at runtime by lib/prisma.ts
+// when DATABASE_URL is a file: URL.
+
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../src/generated/sqlite-client"
+  binaryTargets = ["native", "darwin", "darwin-arm64"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Document {
+  id               String         @id @default(cuid())
+  title            String
+  content          Json
+  metadata         Json?
+  templateSettings Json?
+  templateId       String?
+  typstSource      String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  renderOutputs    RenderOutput[]
+}
+
+model RenderOutput {
+  id               String    @id @default(cuid())
+  documentId       String
+  templateId       String?
+  templateVersion  String?
+  format           String    @default("pdf")
+  status           String    @default("PROCESSING")
+  typstPath        String?
+  pdfPath          String?
+  pdfUrl           String?
+  error            String?
+  contentSnapshot  Json?
+  metadataSnapshot Json?
+  templateSnapshot Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  document         Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
