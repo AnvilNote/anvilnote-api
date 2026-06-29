@@ -5,8 +5,8 @@ import { prisma } from "./lib/prisma";
 async function start() {
   const app = await createApp();
 
-  const server = app.listen(env.PORT, () => {
-    console.log(`anvilnote-api listening on http://localhost:${env.PORT}`);
+  const server = app.listen(env.PORT, env.HOST, () => {
+    console.log(`anvilnote-api listening on http://${env.HOST}:${env.PORT}`);
   });
 
   const shutdown = async (signal: string) => {
