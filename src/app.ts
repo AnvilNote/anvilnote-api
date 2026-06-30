@@ -62,6 +62,18 @@ export async function createApp() {
     immutable: false,
   }));
 
+  // Pre-generated static assets (template preview PDFs/thumbnails/manifests),
+  // produced offline by scripts/generate-template-previews.mjs. The CORP header
+  // lets the web app (different origin) embed these in <img>/pdf.js.
+  app.use(
+    "/static",
+    (_req, res, next) => {
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      next();
+    },
+    express.static(path.resolve(env.STATIC_DIR), { index: false }),
+  );
+
   app.use("/api/health", healthRouter);
   app.use("/api/documents", documentRouter);
   app.use("/api/templates", templateRouter);

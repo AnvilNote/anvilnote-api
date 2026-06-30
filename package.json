@@ -12,6 +12,7 @@
     "prisma:generate:sqlite": "prisma generate --schema prisma/sqlite.prisma",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
+    "generate:template-previews": "node scripts/generate-template-previews.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

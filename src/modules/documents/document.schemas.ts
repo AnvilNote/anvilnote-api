@@ -7,7 +7,7 @@ export const documentIdParamsSchema = z.object({
 });
 
 export const createDocumentSchema = z.object({
-  title: z.string().trim().min(1).max(255).default("Untitled Note"),
+  title: z.string().trim().max(255).default("Untitled Note"),
   content: z.array(z.unknown()).default([]),
   metadata: z.record(z.string(), metadataValueSchema).default({}),
   templateSettings: z.record(z.string(), metadataValueSchema).default({}),
@@ -16,7 +16,7 @@ export const createDocumentSchema = z.object({
 
 export const updateDocumentSchema = z
   .object({
-    title: z.string().trim().min(1).max(255).optional(),
+    title: z.string().trim().max(255).optional(),
     content: z.array(z.unknown()).optional(),
     metadata: z.record(z.string(), metadataValueSchema).optional(),
     templateSettings: z.record(z.string(), metadataValueSchema).optional(),
