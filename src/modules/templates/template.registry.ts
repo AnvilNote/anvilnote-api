@@ -36,6 +36,9 @@ function templatesDir() {
   return path.join(env.ANVILNOTE_RENDERER_PATH, "templates");
 }
 
+// Templates present in the renderer but intentionally not offered in the app.
+const HIDDEN_SLUGS = new Set(["kunskap", "minimal-lecture"]);
+
 function toSummary(manifest: TemplateManifest): TemplateSummary {
   return {
     slug: manifest.slug,
@@ -75,7 +78,7 @@ class TemplateRegistry {
     }
 
     for (const entry of entries) {
-      if (!entry.isDirectory()) {
+      if (!entry.isDirectory() || HIDDEN_SLUGS.has(entry.name)) {
         continue;
       }
       const manifestPath = path.join(dir, entry.name, "manifest.json");
@@ -109,7 +112,12 @@ class TemplateRegistry {
   }
 
   list(): TemplateSummary[] {
-    return Array.from(this.load().values()).map(toSummary);
+    const items = Array.from(this.load().values()).map(toSummary);
+    // Surface the default template (plain-note) first; keep the rest stable.
+    const def = env.DEFAULT_TEMPLATE_SLUG;
+    return items.sort(
+      (a, b) => (a.slug === def ? 0 : 1) - (b.slug === def ? 0 : 1),
+    );
   }
 
   get(slug: string): TemplateManifest | undefined {

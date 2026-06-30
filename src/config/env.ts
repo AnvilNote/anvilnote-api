@@ -21,6 +21,9 @@ const envSchema = z.object({
   STORAGE_DIR: z.string().default("./storage"),
   TYPST_STORAGE_DIR: z.string().default("./storage/typst"),
   PDF_STORAGE_DIR: z.string().default("./storage/pdf"),
+  // Pre-generated static assets (template preview PDFs/thumbnails) served at
+  // /static. Produced offline by scripts/generate-template-previews.mjs.
+  STATIC_DIR: z.string().default("./static"),
   ANVILNOTE_RENDERER_PATH: z.string().default("../anvilnote-renderer"),
   // Fallback template slug when a document has none and the render request
   // doesn't specify one. Must exist under <renderer>/templates/.
@@ -47,6 +50,7 @@ export const env = {
   STORAGE_DIR: path.resolve(cwd, parsed.data.STORAGE_DIR),
   TYPST_STORAGE_DIR: path.resolve(cwd, parsed.data.TYPST_STORAGE_DIR),
   PDF_STORAGE_DIR: path.resolve(cwd, parsed.data.PDF_STORAGE_DIR),
+  STATIC_DIR: path.resolve(cwd, parsed.data.STATIC_DIR),
   ANVILNOTE_RENDERER_PATH: path.resolve(cwd, parsed.data.ANVILNOTE_RENDERER_PATH),
 };
 
