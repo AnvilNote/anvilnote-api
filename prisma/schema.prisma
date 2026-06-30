@@ -18,10 +18,26 @@ model Document {
   // Template slug (file-based template, not a DB foreign key).
   templateId       String?
   typstSource      String?
+  // Optional grouping. Deleting a project unfiles its documents (SET NULL).
+  projectId        String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
+  project          Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
   renderOutputs    RenderOutput[]
+}
+
+model Project {
+  id        String     @id @default(cuid())
+  name      String
+  // Lucide icon name (e.g. "folder", "book-open"); null falls back to a default.
+  icon      String?
+  // Free-form tags, stored as a JSON array of strings.
+  tags      Json?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  documents Document[]
 }
 
 model RenderOutput {
