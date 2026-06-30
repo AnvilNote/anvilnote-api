@@ -25,10 +25,23 @@ model Document {
   templateSettings Json?
   templateId       String?
   typstSource      String?
+  projectId        String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
+  project          Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
   renderOutputs    RenderOutput[]
+}
+
+model Project {
+  id        String     @id @default(cuid())
+  name      String
+  icon      String?
+  tags      Json?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  documents Document[]
 }
 
 model RenderOutput {

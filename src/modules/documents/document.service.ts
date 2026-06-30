@@ -28,6 +28,7 @@ function mapDocument(document: Document): DocumentRecord {
     metadata: normalizeMetadata(document.metadata),
     templateSettings: normalizeMetadata(document.templateSettings),
     templateId: document.templateId,
+    projectId: document.projectId,
     createdAt: document.createdAt.toISOString(),
     updatedAt: document.updatedAt.toISOString(),
   };
@@ -54,6 +55,9 @@ export class DocumentService {
       metadata: toJsonValue(input.metadata),
       templateSettings: toJsonValue(input.templateSettings),
       templateId: input.templateId,
+      ...(input.projectId
+        ? { project: { connect: { id: input.projectId } } }
+        : {}),
     });
 
     return mapDocument(document);
@@ -80,6 +84,11 @@ export class DocumentService {
         ? { templateSettings: toJsonValue(input.templateSettings) }
         : {}),
       ...(input.templateId !== undefined ? { templateId: input.templateId } : {}),
+      ...(input.projectId !== undefined
+        ? input.projectId === null
+          ? { project: { disconnect: true } }
+          : { project: { connect: { id: input.projectId } } }
+        : {}),
     });
 
     return mapDocument(document);

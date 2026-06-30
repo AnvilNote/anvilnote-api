@@ -8,6 +8,14 @@
 import type { PrismaClient } from "@prisma/client";
 
 const STATEMENTS: string[] = [
+  `CREATE TABLE IF NOT EXISTS "Project" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "icon" TEXT,
+    "tags" JSONB,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS "Document" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "title" TEXT NOT NULL,
@@ -16,8 +24,11 @@ const STATEMENTS: string[] = [
     "templateSettings" JSONB,
     "templateId" TEXT,
     "typstSource" TEXT,
+    "projectId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "Document_projectId_fkey" FOREIGN KEY ("projectId")
+      REFERENCES "Project" ("id") ON DELETE SET NULL ON UPDATE CASCADE
   )`,
   `CREATE TABLE IF NOT EXISTS "RenderOutput" (
     "id" TEXT NOT NULL PRIMARY KEY,
@@ -40,10 +51,36 @@ const STATEMENTS: string[] = [
   )`,
 ];
 
+/** True if `table` already has a column named `column`. */
+async function columnExists(
+  client: PrismaClient,
+  table: string,
+  column: string,
+): Promise<boolean> {
+  const rows = (await client.$queryRawUnsafe(
+    `PRAGMA table_info("${table}")`,
+  )) as Array<{ name: string }>;
+  return Array.isArray(rows) && rows.some((row) => row.name === column);
+}
+
 /** Create the tables if they don't exist. Safe to run on every boot. */
 export async function ensureSqliteSchema(client: PrismaClient): Promise<void> {
   for (const sql of STATEMENTS) {
     await client.$executeRawUnsafe(sql);
+  }
+
+  // Existing databases predate the projects feature: add the Document.projectId
+  // column (with its SET NULL foreign key) once, idempotently. Brand-new
+  // databases already have it from the CREATE TABLE above.
+  if (!(await columnExists(client, "Document", "projectId"))) {
+    await client.$executeRawUnsafe(
+      `ALTER TABLE "Document" ADD COLUMN "projectId" TEXT REFERENCES "Project" ("id") ON DELETE SET NULL`,
+    );
+  }
+
+  // Projects predate the icon field: add it once, idempotently.
+  if (!(await columnExists(client, "Project", "icon"))) {
+    await client.$executeRawUnsafe(`ALTER TABLE "Project" ADD COLUMN "icon" TEXT`);
   }
 }
 
