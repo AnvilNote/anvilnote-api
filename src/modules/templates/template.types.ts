@@ -36,7 +36,8 @@ export type TemplateManifest = {
   fields: TemplateField[];
 };
 
-// Summary returned by the list endpoint (drops engine/fonts/headingOffset).
+// Summary returned by the list endpoint (drops engine/fonts/headingOffset,
+// keeps a derived universeUrl for typst-package templates).
 export type TemplateSummary = {
   slug: string;
   name: string;
@@ -45,4 +46,6 @@ export type TemplateSummary = {
   category: string;
   tags: string[];
   fields: TemplateField[];
+  /** Typst Universe page for the wrapped @preview package, when applicable. */
+  universeUrl?: string;
 };
