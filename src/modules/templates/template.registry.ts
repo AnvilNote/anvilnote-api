@@ -39,6 +39,13 @@ function templatesDir() {
 // Templates present in the renderer but intentionally not offered in the app.
 const HIDDEN_SLUGS = new Set(["kunskap", "minimal-lecture"]);
 
+// "@preview/{name}:{version}" -> https://typst.app/universe/package/{name}
+function universeUrlFor(engine: TemplateManifest["engine"]): string | undefined {
+  if (engine.kind !== "typst-package" || !engine.package) return undefined;
+  const name = engine.package.replace(/^@preview\//, "").split(":")[0];
+  return name ? `https://typst.app/universe/package/${name}` : undefined;
+}
+
 function toSummary(manifest: TemplateManifest): TemplateSummary {
   return {
     slug: manifest.slug,
@@ -48,6 +55,7 @@ function toSummary(manifest: TemplateManifest): TemplateSummary {
     category: manifest.category,
     tags: manifest.tags,
     fields: manifest.fields,
+    universeUrl: universeUrlFor(manifest.engine),
   };
 }
 
