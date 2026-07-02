@@ -32,6 +32,9 @@ const envSchema = z.object({
   // Render artifacts (generated .typ and .pdf files) older than this are
   // swept on startup and after each render to keep storage bounded.
   RENDER_RETENTION_HOURS: z.coerce.number().positive().default(24),
+  // Sibling repo: Tiptap JSON -> .docx via Pandoc. Fully decoupled from the
+  // Typst renderer — see anvilnote-docx-exporter/README.md.
+  ANVILNOTE_DOCX_EXPORTER_PATH: z.string().default("../anvilnote-docx-exporter"),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -52,6 +55,7 @@ export const env = {
   PDF_STORAGE_DIR: path.resolve(cwd, parsed.data.PDF_STORAGE_DIR),
   STATIC_DIR: path.resolve(cwd, parsed.data.STATIC_DIR),
   ANVILNOTE_RENDERER_PATH: path.resolve(cwd, parsed.data.ANVILNOTE_RENDERER_PATH),
+  ANVILNOTE_DOCX_EXPORTER_PATH: path.resolve(cwd, parsed.data.ANVILNOTE_DOCX_EXPORTER_PATH),
 };
 
 export type Env = typeof env;
