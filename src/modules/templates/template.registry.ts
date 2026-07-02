@@ -7,12 +7,16 @@ import type { TemplateManifest, TemplateSummary } from "./template.types";
 const templateFieldSchema = z.object({
   key: z.string(),
   label: z.string(),
-  type: z.enum(["text", "textarea", "date", "boolean", "select"]),
+  type: z.enum(["text", "textarea", "date", "boolean", "select", "color"]),
   scope: z.enum(["metadata", "option"]),
   required: z.boolean().optional(),
   default: z.union([z.string(), z.boolean()]).optional(),
   placeholder: z.string().optional(),
   options: z.array(z.string()).optional(),
+  // Only render this field while another field (by key) holds `value`.
+  dependsOn: z
+    .object({ key: z.string(), value: z.union([z.string(), z.boolean(), z.null()]) })
+    .optional(),
 });
 
 const templateManifestSchema = z.object({
