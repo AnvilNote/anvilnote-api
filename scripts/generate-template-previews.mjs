@@ -48,6 +48,20 @@ function logoDataUri() {
   return null;
 }
 
+// Per-template sample-content extension point: read the template's own
+// manifest.json (already the source of truth the renderer itself reads) and
+// let a declared trait drive an addition to the otherwise-identical generic
+// sample — rather than a hardcoded slug switch, so any future template that
+// declares the same trait (e.g. tufte-memo's own footnoteStyle: "sidenote")
+// picks up the same showcase for free.
+function readTemplateManifest(id) {
+  try {
+    return JSON.parse(readFileSync(join(TEMPLATES_DIR, id, "manifest.json"), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 function titleCase(slug) {
   return slug
     .split("-")
@@ -102,6 +116,10 @@ const LOCALE_CONTENT = {
     author: "Author Name",
     titleSuffix: "Sample Document",
     inlineMathLabel: "Inline math: ",
+    footnoteShowcase: {
+      sentence: "This sentence carries a footnote",
+      note: "Rendered per the template's own footnote style — a margin sidenote here, since this template declares footnoteStyle: \"sidenote\".",
+    },
   },
   "zh-TW": {
     headings: ["大標題", "中標題", "小標題"],
@@ -121,6 +139,10 @@ const LOCALE_CONTENT = {
     author: "作者姓名",
     titleSuffix: "範例文件",
     inlineMathLabel: "Inline 數學：",
+    footnoteShowcase: {
+      sentence: "這句話帶有一個腳注",
+      note: "依範本自己的腳注風格渲染——因為這個範本宣告了 footnoteStyle: \"sidenote\"，這裡會顯示成側邊註解。",
+    },
   },
   ja: {
     headings: ["見出し1", "見出し2", "見出し3"],
@@ -140,6 +162,10 @@ const LOCALE_CONTENT = {
     author: "著者名",
     titleSuffix: "サンプル文書",
     inlineMathLabel: "インライン数式：",
+    footnoteShowcase: {
+      sentence: "この文には脚注が付いています",
+      note: "テンプレート自身の脚注スタイルで表示されます。footnoteStyle: \"sidenote\" が宣言されているため、ここでは欄外注として表示されます。",
+    },
   },
   ko: {
     headings: ["제목 1", "제목 2", "제목 3"],
@@ -159,6 +185,10 @@ const LOCALE_CONTENT = {
     author: "작성자",
     titleSuffix: "샘플 문서",
     inlineMathLabel: "인라인 수식: ",
+    footnoteShowcase: {
+      sentence: "이 문장에는 각주가 있습니다",
+      note: "템플릿 자체의 각주 스타일로 표시됩니다. footnoteStyle: \"sidenote\"가 선언되어 있어 여기서는 여백 사이드노트로 표시됩니다.",
+    },
   },
   th: {
     headings: ["หัวข้อ 1", "หัวข้อ 2", "หัวข้อ 3"],
@@ -178,6 +208,10 @@ const LOCALE_CONTENT = {
     author: "ผู้เขียน",
     titleSuffix: "เอกสารตัวอย่าง",
     inlineMathLabel: "สมการในบรรทัด: ",
+    footnoteShowcase: {
+      sentence: "ประโยคนี้มีเชิงอรรถกำกับอยู่",
+      note: "แสดงผลตามสไตล์เชิงอรรถของเทมเพลตเอง เนื่องจากเทมเพลตนี้ประกาศ footnoteStyle: \"sidenote\" จึงแสดงเป็นบันทึกข้างหน้าที่นี่",
+    },
   },
   ru: {
     headings: ["Заголовок 1", "Заголовок 2", "Заголовок 3"],
@@ -197,6 +231,10 @@ const LOCALE_CONTENT = {
     author: "Автор",
     titleSuffix: "Образец документа",
     inlineMathLabel: "Встроенная формула: ",
+    footnoteShowcase: {
+      sentence: "В этом предложении есть сноска",
+      note: "Отображается в собственном стиле сносок шаблона — здесь это боковая заметка, так как шаблон объявляет footnoteStyle: \"sidenote\".",
+    },
   },
 };
 
@@ -209,6 +247,8 @@ function buildInput(id, locale, logo) {
   const c = LOCALE_CONTENT[locale];
   const en = LOCALE_CONTENT.en;
   const paired = locale !== "en";
+  const manifest = readTemplateManifest(id);
+  const showcaseFootnote = manifest?.footnoteStyle === "sidenote";
 
   const text = (t) => ({ type: "text", text: t });
   const para = (...nodes) => ({ type: "paragraph", content: nodes });
@@ -226,9 +266,17 @@ function buildInput(id, locale, logo) {
   const content = [
     heading(1, c.headings[0]),
     ...loremPara(0),
+  ];
+  if (showcaseFootnote) {
+    const fn = c.footnoteShowcase ?? en.footnoteShowcase;
+    content.push(
+      para(text(fn.sentence), { type: "footnoteReference", attrs: { "data-id": "preview-footnote-1", referenceNumber: "1" } }, text(".")),
+    );
+  }
+  content.push(
     heading(2, c.headings[1]),
     ...loremPara(1),
-  ];
+  );
   if (logo) {
     content.push(
       ...(paired ? [para(text(en.around.beforeImage))] : []),
@@ -262,6 +310,19 @@ function buildInput(id, locale, logo) {
     ...(paired ? [para(text(en.around.afterTable))] : []),
     para(text(c.around.afterTable)),
   );
+  if (showcaseFootnote) {
+    const fn = c.footnoteShowcase ?? en.footnoteShowcase;
+    content.push({
+      type: "footnotes",
+      content: [
+        {
+          type: "footnote",
+          attrs: { id: "fn:1", "data-id": "preview-footnote-1" },
+          content: [para(text(fn.note))],
+        },
+      ],
+    });
+  }
 
   const title = `${name} ${c.titleSuffix}`;
   const author = paired ? `${c.author} ${en.author}` : c.author;
