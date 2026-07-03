@@ -33,6 +33,7 @@ type ExporterResult = ExporterSuccess | ExporterFailure;
 export async function runDocxExporterCli(input: {
   title: string;
   content: unknown;
+  primaryLang?: string;
 }): Promise<Buffer> {
   const workDir = env.TYPST_STORAGE_DIR; // reuse the existing scratch dir; nothing Typst-specific about it
   const id = randomUUID();

@@ -25,9 +25,17 @@ export class DocxExportService {
       throw new HttpError(404, "Document not found");
     }
 
+    const templateSettings =
+      document.templateSettings && typeof document.templateSettings === "object"
+        ? (document.templateSettings as Record<string, unknown>)
+        : {};
+    const primaryLang =
+      typeof templateSettings.primaryLang === "string" ? templateSettings.primaryLang : undefined;
+
     const buffer = await runDocxExporterCli({
       title: document.title,
       content: unwrapDocNode(document.content),
+      primaryLang,
     });
 
     const safeTitle = (document.title || "Untitled").replace(/[/\\?%*:|"<>]/g, "_").slice(0, 100);
