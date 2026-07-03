@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Document {
-  id               String         @id @default(cuid())
+  id               String            @id @default(cuid())
   title            String
   content          Json
   // Document Metadata: title/author/date/courseName… — kept across templates.
@@ -20,11 +20,32 @@ model Document {
   typstSource      String?
   // Optional grouping. Deleting a project unfiles its documents (SET NULL).
   projectId        String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
-  project          Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project          Project?          @relation(fields: [projectId], references: [id], onDelete: SetNull)
   renderOutputs    RenderOutput[]
+  versions         DocumentVersion[]
+}
+
+// A point-in-time snapshot of a document's versioned fields, for the
+// version-history feature. Snapshots are created client-side (on an
+// interval, only when content actually changed since the last one — see
+// anvilnote-web's document-store.ts) rather than on every autosave, since a
+// snapshot per keystroke-debounce would be far too granular to be a useful
+// "version" and would bloat storage for no benefit.
+model DocumentVersion {
+  id               String   @id @default(cuid())
+  documentId       String
+  title            String
+  content          Json
+  metadata         Json?
+  templateSettings Json?
+  createdAt        DateTime @default(now())
+
+  document         Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, createdAt])
 }
 
 model Project {
