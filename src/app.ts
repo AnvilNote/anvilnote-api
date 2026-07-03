@@ -13,6 +13,7 @@ import { sweepRenderArtifacts } from "./lib/storage-cleanup";
 import { prisma } from "./lib/prisma";
 import { ensureSqliteSchema, isSqlite } from "./lib/sqlite-init";
 import { documentRouter } from "./modules/documents/document.routes";
+import { documentVersionRouter } from "./modules/document-versions/document-version.routes";
 import { projectRouter } from "./modules/projects/project.routes";
 import { healthRouter } from "./modules/health/health.routes";
 import { renderRouter } from "./modules/render/render.routes";
@@ -81,6 +82,7 @@ export async function createApp() {
   app.use("/api/projects", projectRouter);
   app.use("/api/templates", templateRouter);
   app.use("/api", renderRouter);
+  app.use("/api", documentVersionRouter);
   app.use("/api", docxExportRouter);
 
   app.use(notFoundMiddleware);

@@ -18,7 +18,7 @@ datasource db {
 }
 
 model Document {
-  id               String         @id @default(cuid())
+  id               String            @id @default(cuid())
   title            String
   content          Json
   metadata         Json?
@@ -26,11 +26,26 @@ model Document {
   templateId       String?
   typstSource      String?
   projectId        String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
-  project          Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project          Project?          @relation(fields: [projectId], references: [id], onDelete: SetNull)
   renderOutputs    RenderOutput[]
+  versions         DocumentVersion[]
+}
+
+model DocumentVersion {
+  id               String   @id @default(cuid())
+  documentId       String
+  title            String
+  content          Json
+  metadata         Json?
+  templateSettings Json?
+  createdAt        DateTime @default(now())
+
+  document         Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, createdAt])
 }
 
 model Project {
