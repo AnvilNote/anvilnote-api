@@ -9,7 +9,7 @@
 generator client {
   provider      = "prisma-client-js"
   output        = "../src/generated/sqlite-client"
-  binaryTargets = ["native", "darwin", "darwin-arm64"]
+  binaryTargets = ["native", "darwin", "darwin-arm64", "debian-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
 }
 
 datasource db {
