@@ -2,6 +2,7 @@
   "name": "anvilnote-api",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Node.js/Express API for AnvilNote document storage and Typst PDF rendering.",
   "scripts": {
     "dev": "tsx watch src/server.ts",
