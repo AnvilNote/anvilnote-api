@@ -1,0 +1,83 @@
+{
+  "document": {
+    "id": "sample-plain-note",
+    "title": "純文字筆記模板示範",
+    "content": [
+      {
+        "type": "heading",
+        "props": { "level": 1 },
+        "content": [{ "type": "text", "text": "文件目的", "styles": {} }]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "text", "text": "這份示範稿展示 plain-note 模板的排版：標題層級、段落、清單、連結與中英混排。模板只管把版面固定住，內容由 ", "styles": {} },
+          { "type": "text", "text": "BlockNote", "styles": { "code": true } },
+          { "type": "text", "text": " 提供。", "styles": {} }
+        ]
+      },
+      {
+        "type": "heading",
+        "props": { "level": 2 },
+        "content": [{ "type": "text", "text": "適合的使用情境", "styles": {} }]
+      },
+      {
+        "type": "paragraph",
+        "content": [{ "type": "text", "text": "這個模板適合記下面這幾種東西：", "styles": {} }]
+      },
+      {
+        "type": "bulletListItem",
+        "content": [{ "type": "text", "text": "課堂筆記與讀書摘要", "styles": {} }]
+      },
+      {
+        "type": "bulletListItem",
+        "content": [{ "type": "text", "text": "研究過程中的臨時備忘錄", "styles": {} }]
+      },
+      {
+        "type": "bulletListItem",
+        "content": [{ "type": "text", "text": "專案會議紀錄與技術文件初稿", "styles": {} }]
+      },
+      {
+        "type": "heading",
+        "props": { "level": 2 },
+        "content": [{ "type": "text", "text": "中英混排與連結", "styles": {} }]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "text", "text": "技術筆記常寫到 ", "styles": {} },
+          { "type": "text", "text": "Typst", "styles": { "bold": true } },
+          { "type": "text", "text": "、", "styles": {} },
+          { "type": "text", "text": "font-path", "styles": { "code": true } },
+          { "type": "text", "text": " 這類名詞，排出來要嵌在中文裡。參考 ", "styles": {} },
+          { "type": "link", "href": "https://typst.app/docs/", "content": [{ "type": "text", "text": "Typst 官方文件", "styles": {} }] }
+        ]
+      },
+      {
+        "type": "heading",
+        "props": { "level": 3 },
+        "content": [{ "type": "text", "text": "編號與層級", "styles": {} }]
+      },
+      {
+        "type": "paragraph",
+        "content": [{ "type": "text", "text": "可見標題從第一層開始編號為 1、1.1、1.1.1，不會出現 0 開頭。", "styles": {} }]
+      }
+    ]
+  },
+  "template": {
+    "slug": "plain-note",
+    "meta": {
+      "title": "純文字筆記模板示範",
+      "author": "林大偉",
+      "date": "2026-06-28"
+    },
+    "options": {
+      "toc": true,
+      "colorlinks": true
+    }
+  },
+  "options": {
+    "format": "pdf",
+    "pageSize": "A4"
+  }
+}

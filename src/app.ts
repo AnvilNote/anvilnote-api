@@ -49,7 +49,14 @@ export async function createApp() {
   app.use(requestIdMiddleware);
   app.use(helmet());
   app.use(cors(corsOptions));
-  app.use(express.json({ limit: "2mb" }));
+  // Documents store images inline as base64 data URLs (see anvilnote-web's
+  // image.ts) — a handful of screenshots/photos in one document routinely
+  // pushes its JSON well past a couple MB. 2mb was hit in real use (a
+  // lecture-notes document with several inline images failed to save with
+  // a bare 500, not even a clear "too large" error) — raised generously
+  // since this API only ever listens on 127.0.0.1 for the desktop app, not
+  // the public internet, so a larger limit isn't a meaningful DoS surface.
+  app.use(express.json({ limit: "50mb" }));
   app.use(morgan("dev"));
 
   app.get("/", (_req, res) => {
