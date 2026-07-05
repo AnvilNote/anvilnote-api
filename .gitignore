@@ -12,3 +12,4 @@ storage/typst/*.json
 # Desktop SQLite generated client and local db
 src/generated/
 *.db
+storage/
