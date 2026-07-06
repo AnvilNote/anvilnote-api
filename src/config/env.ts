@@ -35,6 +35,8 @@ const envSchema = z.object({
   // Sibling repo: Tiptap JSON -> .docx via Pandoc. Fully decoupled from the
   // Typst renderer — see anvilnote-docx-exporter/README.md.
   ANVILNOTE_DOCX_EXPORTER_PATH: z.string().default("../anvilnote-docx-exporter"),
+  // Sibling repo: function-plot spec -> SVG via Typst + simple-plot.
+  ANVILNOTE_CHARTS_PATH: z.string().default("../anvilnote-charts"),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -56,6 +58,7 @@ export const env = {
   STATIC_DIR: path.resolve(cwd, parsed.data.STATIC_DIR),
   ANVILNOTE_RENDERER_PATH: path.resolve(cwd, parsed.data.ANVILNOTE_RENDERER_PATH),
   ANVILNOTE_DOCX_EXPORTER_PATH: path.resolve(cwd, parsed.data.ANVILNOTE_DOCX_EXPORTER_PATH),
+  ANVILNOTE_CHARTS_PATH: path.resolve(cwd, parsed.data.ANVILNOTE_CHARTS_PATH),
 };
 
 export type Env = typeof env;
