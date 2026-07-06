@@ -27,6 +27,7 @@ const functionPlotBodySchema = z
           formula: z.string().min(1).max(200).regex(FORMULA_PATTERN, "Formula contains unsupported characters"),
           color: z.string().regex(HEX_COLOR_PATTERN, "Color must be a 6-digit hex value"),
           dash: z.enum(DASH_VALUES),
+          thickness: z.number().min(0.5).max(4).default(1.5),
         }),
       )
       .min(1)
