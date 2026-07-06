@@ -18,6 +18,7 @@ import { projectRouter } from "./modules/projects/project.routes";
 import { healthRouter } from "./modules/health/health.routes";
 import { renderRouter } from "./modules/render/render.routes";
 import { docxExportRouter } from "./modules/docx-export/docx-export.routes";
+import { chartsRouter } from "./modules/charts/charts.routes";
 import { templateRouter } from "./modules/templates/template.routes";
 
 export async function createApp() {
@@ -91,6 +92,7 @@ export async function createApp() {
   app.use("/api", renderRouter);
   app.use("/api", documentVersionRouter);
   app.use("/api", docxExportRouter);
+  app.use("/api", chartsRouter);
 
   app.use(notFoundMiddleware);
   app.use(errorMiddleware);
