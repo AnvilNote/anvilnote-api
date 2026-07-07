@@ -86,12 +86,14 @@ const barChartSchema = categoricalBase.extend({
   chartType: z.literal("bar"),
   showValues: z.boolean().default(false),
   showGridLines: z.boolean().default(true),
+  showBorder: z.boolean().default(true),
   ...axisLabelFields,
 });
 const columnChartSchema = categoricalBase.extend({
   chartType: z.literal("column"),
   showValues: z.boolean().default(false),
   showGridLines: z.boolean().default(true),
+  showBorder: z.boolean().default(true),
   ...axisLabelFields,
 });
 const lineChartSchema = categoricalBase.extend({ chartType: z.literal("line"), ...axisLabelFields });
@@ -135,6 +137,7 @@ const stackedChartBase = z.object({
     .optional(),
   showLegend: z.boolean().default(true),
   showGridLines: z.boolean().default(true),
+  showBorder: z.boolean().default(true),
   fontFamily: fontFamilySchema,
   ...axisLabelFields,
 });
