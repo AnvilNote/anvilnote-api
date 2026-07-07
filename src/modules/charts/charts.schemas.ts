@@ -45,8 +45,10 @@ const categoricalEntrySchema = z.object({
   color: z.string().regex(HEX_COLOR_PATTERN, "Color must be a 6-digit hex value").optional(),
 });
 
-// Mirrors anvilnote-charts's own scatterEntrySchema.
-const SCATTER_MAX_ENTRIES = 200;
+// Mirrors anvilnote-charts's own scatterEntrySchema — see that repo's
+// own schema.ts comment for the empirical compile-time measurement
+// behind this 5000 figure.
+const SCATTER_MAX_ENTRIES = 5000;
 const scatterEntrySchema = z.object({
   x: z.number().finite(),
   y: z.number().finite(),
