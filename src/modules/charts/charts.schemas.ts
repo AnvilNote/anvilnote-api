@@ -83,7 +83,7 @@ const pyramidChartSchema = categoricalBase.extend({ chartType: z.literal("pyrami
 const pieChartSchema = categoricalBase.extend({
   chartType: z.literal("pie"),
   showLegend: z.boolean().default(true),
-  showPercentage: z.boolean().default(false),
+  showPercentage: z.enum(["none", "onSlice", "beside"]).default("none"),
 });
 
 const boxWhiskerChartSchema = z.object({
