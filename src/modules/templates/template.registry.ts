@@ -33,6 +33,13 @@ const templateManifestSchema = z.object({
   tags: z.array(z.string()).default([]),
   fonts: z.array(z.string()).default([]),
   headingOffset: z.number().int().default(0),
+  // Mirrors anvilnote-renderer's own template-loader.ts schema addition —
+  // each template's content/text-column width (page width minus its own
+  // margins), in cm. Required (no default): every template's manifest.json
+  // now has a real measured value (see that repo's own commit for how it
+  // was measured), so a template missing it should fail loudly, not
+  // silently guess.
+  textWidthCm: z.number().positive(),
   fields: z.array(templateFieldSchema),
 });
 
@@ -59,6 +66,7 @@ function toSummary(manifest: TemplateManifest): TemplateSummary {
     category: manifest.category,
     tags: manifest.tags,
     fields: manifest.fields,
+    textWidthCm: manifest.textWidthCm,
     universeUrl: universeUrlFor(manifest.engine),
   };
 }

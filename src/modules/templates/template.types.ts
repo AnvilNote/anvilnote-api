@@ -40,6 +40,9 @@ export type TemplateManifest = {
   tags: string[];
   fonts: string[];
   headingOffset: number;
+  /** This template's own content/text-column width, in cm — mirrors
+   *  anvilnote-renderer's own TemplateManifest field. */
+  textWidthCm: number;
   fields: TemplateField[];
 };
 
@@ -53,6 +56,7 @@ export type TemplateSummary = {
   category: string;
   tags: string[];
   fields: TemplateField[];
+  textWidthCm: number;
   /** Typst Universe page for the wrapped @preview package, when applicable. */
   universeUrl?: string;
 };
