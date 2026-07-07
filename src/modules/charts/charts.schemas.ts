@@ -125,7 +125,7 @@ const scatterChartSchema = z.object({
   data: z.array(scatterEntrySchema).min(1).max(SCATTER_MAX_ENTRIES),
   fontFamily: fontFamilySchema,
   trendLine: z.enum(["none", "linear", "lowess"]).default("none"),
-  trendLineColor: z.string().regex(HEX_COLOR_PATTERN, "Color must be a 6-digit hex value").default("#737373"),
+  trendLineColor: z.string().regex(HEX_COLOR_PATTERN, "Color must be a 6-digit hex value").default("#E3120B"),
   showGridLines: z.boolean().default(true),
   ...axisLabelFields,
   ...customSizeFields,
