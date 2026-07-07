@@ -116,6 +116,7 @@ const scatterChartSchema = z.object({
   fontFamily: fontFamilySchema,
   trendLine: z.enum(["none", "linear", "lowess"]).default("none"),
   trendLineColor: z.string().regex(HEX_COLOR_PATTERN, "Color must be a 6-digit hex value").default("#737373"),
+  showGridLines: z.boolean().default(true),
   ...axisLabelFields,
 });
 
