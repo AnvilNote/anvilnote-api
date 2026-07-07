@@ -76,6 +76,12 @@ const axisLabelFields = {
   yLabelRotated: z.boolean().default(true),
 };
 
+// Mirrors anvilnote-charts's own customSizeFields.
+const customSizeFields = {
+  width: z.number().min(1).max(50).optional(),
+  height: z.number().min(1).max(50).optional(),
+};
+
 const categoricalBase = z.object({
   kind: z.literal("statsChart"),
   data: z.array(categoricalEntrySchema).min(1).max(MAX_ENTRIES),
@@ -88,6 +94,7 @@ const barChartSchema = categoricalBase.extend({
   showGridLines: z.boolean().default(true),
   showBorder: z.boolean().default(true),
   ...axisLabelFields,
+  ...customSizeFields,
 });
 const columnChartSchema = categoricalBase.extend({
   chartType: z.literal("column"),
@@ -95,12 +102,18 @@ const columnChartSchema = categoricalBase.extend({
   showGridLines: z.boolean().default(true),
   showBorder: z.boolean().default(true),
   ...axisLabelFields,
+  ...customSizeFields,
 });
-const lineChartSchema = categoricalBase.extend({ chartType: z.literal("line"), ...axisLabelFields });
+const lineChartSchema = categoricalBase.extend({
+  chartType: z.literal("line"),
+  ...axisLabelFields,
+  ...customSizeFields,
+});
 const pieChartSchema = categoricalBase.extend({
   chartType: z.literal("pie"),
   showLegend: z.boolean().default(true),
   showPercentage: z.enum(["none", "onSlice", "beside"]).default("none"),
+  ...customSizeFields,
 });
 
 // Mirrors anvilnote-charts's own scatterChartSchema.
@@ -113,6 +126,7 @@ const scatterChartSchema = z.object({
   trendLineColor: z.string().regex(HEX_COLOR_PATTERN, "Color must be a 6-digit hex value").default("#737373"),
   showGridLines: z.boolean().default(true),
   ...axisLabelFields,
+  ...customSizeFields,
 });
 
 const boxWhiskerChartSchema = z.object({
@@ -120,6 +134,7 @@ const boxWhiskerChartSchema = z.object({
   chartType: z.literal("boxwhisker"),
   data: z.array(boxWhiskerEntrySchema).min(1).max(MAX_ENTRIES),
   fontFamily: fontFamilySchema,
+  ...customSizeFields,
 });
 
 const stackedEntrySchema = z.object({
@@ -140,6 +155,7 @@ const stackedChartBase = z.object({
   showBorder: z.boolean().default(true),
   fontFamily: fontFamilySchema,
   ...axisLabelFields,
+  ...customSizeFields,
 });
 
 const stackedBarChartSchema = stackedChartBase.extend({ chartType: z.literal("stackedBar") });
