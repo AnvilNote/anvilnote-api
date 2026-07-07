@@ -71,12 +71,19 @@ const categoricalBase = z.object({
   data: z.array(categoricalEntrySchema).min(1).max(MAX_ENTRIES),
 });
 
-const barChartSchema = categoricalBase.extend({ chartType: z.literal("bar") });
-const columnChartSchema = categoricalBase.extend({ chartType: z.literal("column") });
+const barChartSchema = categoricalBase.extend({
+  chartType: z.literal("bar"),
+  showValues: z.boolean().default(false),
+});
+const columnChartSchema = categoricalBase.extend({
+  chartType: z.literal("column"),
+  showValues: z.boolean().default(false),
+});
 const pyramidChartSchema = categoricalBase.extend({ chartType: z.literal("pyramid") });
 const pieChartSchema = categoricalBase.extend({
   chartType: z.literal("pie"),
   showLegend: z.boolean().default(true),
+  showPercentage: z.boolean().default(false),
 });
 
 const boxWhiskerChartSchema = z.object({
