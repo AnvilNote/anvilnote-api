@@ -66,9 +66,13 @@ const boxWhiskerEntrySchema = z
     path: ["min"],
   });
 
+// Mirrors anvilnote-charts's own schema.ts fontFamilySchema.
+const fontFamilySchema = z.enum(["sans", "serif"]).default("sans");
+
 const categoricalBase = z.object({
   kind: z.literal("statsChart"),
   data: z.array(categoricalEntrySchema).min(1).max(MAX_ENTRIES),
+  fontFamily: fontFamilySchema,
 });
 
 const barChartSchema = categoricalBase.extend({
@@ -80,6 +84,7 @@ const columnChartSchema = categoricalBase.extend({
   showValues: z.boolean().default(false),
 });
 const pyramidChartSchema = categoricalBase.extend({ chartType: z.literal("pyramid") });
+const lineChartSchema = categoricalBase.extend({ chartType: z.literal("line") });
 const pieChartSchema = categoricalBase.extend({
   chartType: z.literal("pie"),
   showLegend: z.boolean().default(true),
@@ -90,6 +95,7 @@ const boxWhiskerChartSchema = z.object({
   kind: z.literal("statsChart"),
   chartType: z.literal("boxwhisker"),
   data: z.array(boxWhiskerEntrySchema).min(1).max(MAX_ENTRIES),
+  fontFamily: fontFamilySchema,
 });
 
 const statsChartBodySchema = z.discriminatedUnion("chartType", [
@@ -97,6 +103,7 @@ const statsChartBodySchema = z.discriminatedUnion("chartType", [
   columnChartSchema,
   pieChartSchema,
   pyramidChartSchema,
+  lineChartSchema,
   boxWhiskerChartSchema,
 ]);
 
