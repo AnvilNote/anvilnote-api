@@ -95,3 +95,27 @@ test("rejects stats-chart boxwhisker with out-of-order values", () => {
     }),
   );
 });
+
+test("accepts a valid stats-chart stacked column spec", () => {
+  const result = chartsRenderBodySchema.parse({
+    kind: "statsChart",
+    chartType: "stackedColumn",
+    data: [{ label: "Q1", values: [10, 20] }],
+    seriesLabels: ["Product A", "Product B"],
+  });
+  if (result.kind === "statsChart" && result.chartType === "stackedColumn") {
+    assert.equal(result.showLegend, true);
+    assert.equal(result.showGridLines, true);
+  }
+});
+
+test("rejects stats-chart stacked spec with mismatched series values", () => {
+  assert.throws(() =>
+    chartsRenderBodySchema.parse({
+      kind: "statsChart",
+      chartType: "stackedBar",
+      data: [{ label: "Q1", values: [10] }],
+      seriesLabels: ["Product A", "Product B"],
+    }),
+  );
+});

@@ -12,15 +12,7 @@ const DASH_VALUES = ["solid", "dashed", "dotted", "dash-dot"] as const;
 
 const functionPlotBodySchema = z
   .object({
-    // Defaulted for convenience when parsing this member schema in
-    // isolation (e.g. a future direct test) — the outer
-    // z.discriminatedUnion below still requires "kind" present in the raw
-    // request body to route to this branch at all (confirmed: the default
-    // does not help the union pick a branch for an input missing "kind"
-    // entirely). anvilnote-web always sends "kind" explicitly for every
-    // /api/charts/render call — see function-plot-render.ts /
-    // stats-chart-render.ts.
-    kind: z.literal("functionPlot").default("functionPlot"),
+    kind: z.literal("functionPlot"),
     curves: z
       .array(
         z.object({
@@ -45,6 +37,7 @@ const functionPlotBodySchema = z
 // ─── stats-chart ─────────────────────────────────────────────────────────
 const LABEL_MAX_LEN = 100;
 const MAX_ENTRIES = 20;
+const MAX_SERIES = 6;
 
 const categoricalEntrySchema = z.object({
   label: z.string().min(1).max(LABEL_MAX_LEN),
@@ -127,17 +120,51 @@ const boxWhiskerChartSchema = z.object({
   fontFamily: fontFamilySchema,
 });
 
-const statsChartBodySchema = z.discriminatedUnion("chartType", [
-  barChartSchema,
-  columnChartSchema,
-  pieChartSchema,
-  lineChartSchema,
-  scatterChartSchema,
-  boxWhiskerChartSchema,
-]);
+const stackedEntrySchema = z.object({
+  label: z.string().min(1).max(LABEL_MAX_LEN),
+  values: z.array(z.number().finite()).min(1).max(MAX_SERIES),
+});
+
+const stackedChartBase = z.object({
+  kind: z.literal("statsChart"),
+  data: z.array(stackedEntrySchema).min(1).max(MAX_ENTRIES),
+  seriesLabels: z.array(z.string().min(1).max(LABEL_MAX_LEN)).min(1).max(MAX_SERIES),
+  seriesColors: z
+    .array(z.string().regex(HEX_COLOR_PATTERN, "Color must be a 6-digit hex value"))
+    .max(MAX_SERIES)
+    .optional(),
+  showLegend: z.boolean().default(true),
+  showGridLines: z.boolean().default(true),
+  fontFamily: fontFamilySchema,
+  ...axisLabelFields,
+});
+
+const stackedBarChartSchema = stackedChartBase.extend({ chartType: z.literal("stackedBar") });
+const stackedColumnChartSchema = stackedChartBase.extend({ chartType: z.literal("stackedColumn") });
+
+const statsChartBodySchema = z
+  .discriminatedUnion("chartType", [
+    barChartSchema,
+    columnChartSchema,
+    pieChartSchema,
+    lineChartSchema,
+    scatterChartSchema,
+    boxWhiskerChartSchema,
+    stackedBarChartSchema,
+    stackedColumnChartSchema,
+  ])
+  .superRefine((spec, ctx) => {
+    if (spec.chartType !== "stackedBar" && spec.chartType !== "stackedColumn") return;
+    for (const [index, entry] of spec.data.entries()) {
+      if (entry.values.length !== spec.seriesLabels.length) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Entry ${index} has ${entry.values.length} values but seriesLabels has ${spec.seriesLabels.length}`,
+          path: ["data", index, "values"],
+        });
+      }
+    }
+  });
 
 // ─── top-level dispatch ─────────────────────────────────────────────────
-export const chartsRenderBodySchema = z.discriminatedUnion("kind", [
-  functionPlotBodySchema,
-  statsChartBodySchema,
-]);
+export const chartsRenderBodySchema = z.union([functionPlotBodySchema, statsChartBodySchema]);
