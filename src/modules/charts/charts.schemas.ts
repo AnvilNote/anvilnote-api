@@ -52,6 +52,13 @@ const categoricalEntrySchema = z.object({
   color: z.string().regex(HEX_COLOR_PATTERN, "Color must be a 6-digit hex value").optional(),
 });
 
+// Mirrors anvilnote-charts's own scatterEntrySchema.
+const SCATTER_MAX_ENTRIES = 200;
+const scatterEntrySchema = z.object({
+  x: z.number().finite(),
+  y: z.number().finite(),
+});
+
 const boxWhiskerEntrySchema = z
   .object({
     label: z.string().min(1).max(LABEL_MAX_LEN),
@@ -69,6 +76,13 @@ const boxWhiskerEntrySchema = z
 // Mirrors anvilnote-charts's own schema.ts fontFamilySchema.
 const fontFamilySchema = z.enum(["sans", "serif"]).default("sans");
 
+// Mirrors anvilnote-charts's own axisLabelFields.
+const axisLabelFields = {
+  xLabel: z.string().max(50).default(""),
+  yLabel: z.string().max(50).default(""),
+  yLabelRotated: z.boolean().default(true),
+};
+
 const categoricalBase = z.object({
   kind: z.literal("statsChart"),
   data: z.array(categoricalEntrySchema).min(1).max(MAX_ENTRIES),
@@ -78,17 +92,31 @@ const categoricalBase = z.object({
 const barChartSchema = categoricalBase.extend({
   chartType: z.literal("bar"),
   showValues: z.boolean().default(false),
+  showGridLines: z.boolean().default(true),
+  ...axisLabelFields,
 });
 const columnChartSchema = categoricalBase.extend({
   chartType: z.literal("column"),
   showValues: z.boolean().default(false),
+  showGridLines: z.boolean().default(true),
+  ...axisLabelFields,
 });
-const pyramidChartSchema = categoricalBase.extend({ chartType: z.literal("pyramid") });
-const lineChartSchema = categoricalBase.extend({ chartType: z.literal("line") });
+const lineChartSchema = categoricalBase.extend({ chartType: z.literal("line"), ...axisLabelFields });
 const pieChartSchema = categoricalBase.extend({
   chartType: z.literal("pie"),
   showLegend: z.boolean().default(true),
   showPercentage: z.enum(["none", "onSlice", "beside"]).default("none"),
+});
+
+// Mirrors anvilnote-charts's own scatterChartSchema.
+const scatterChartSchema = z.object({
+  kind: z.literal("statsChart"),
+  chartType: z.literal("scatter"),
+  data: z.array(scatterEntrySchema).min(1).max(SCATTER_MAX_ENTRIES),
+  fontFamily: fontFamilySchema,
+  trendLine: z.enum(["none", "linear", "lowess"]).default("none"),
+  trendLineColor: z.string().regex(HEX_COLOR_PATTERN, "Color must be a 6-digit hex value").default("#737373"),
+  ...axisLabelFields,
 });
 
 const boxWhiskerChartSchema = z.object({
@@ -102,8 +130,8 @@ const statsChartBodySchema = z.discriminatedUnion("chartType", [
   barChartSchema,
   columnChartSchema,
   pieChartSchema,
-  pyramidChartSchema,
   lineChartSchema,
+  scatterChartSchema,
   boxWhiskerChartSchema,
 ]);
 
