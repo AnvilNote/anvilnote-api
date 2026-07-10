@@ -24,6 +24,10 @@ export const renderBodySchema = z
     templateId: z.string().trim().min(1).optional(),
     // Override specific template options (e.g. previewing unsaved settings).
     options: z.record(z.string(), metadataValueSchema).optional(),
+    // Document-level override, NOT part of the per-template `options` dict
+    // above — see anvilnote-web's numberedHeadings field for why this stays
+    // top-level.
+    numberedHeadings: z.boolean().optional(),
     exportOptions: z
       .object({
         pageSize: z.enum(["A4", "Letter"]).optional(),
