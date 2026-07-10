@@ -15,6 +15,14 @@ model Document {
   metadata         Json?
   // Template Options: showToc/paperSize… — bound to the current template.
   templateSettings Json?
+  // Document-level, template-independent: whether PDF export shows
+  // "1"/"1.1"-style heading numbers. Deliberately NOT part of
+  // templateSettings — it applies uniformly regardless of which
+  // template is active (only plain-note's own adapter chain currently
+  // acts on it; see anvilnote-renderer's supportsNumberedHeadings
+  // manifest capability flag for how other templates are protected
+  // from an argument they don't declare).
+  numberedHeadings Boolean           @default(true)
   // Template slug (file-based template, not a DB foreign key).
   templateId       String?
   typstSource      String?
@@ -41,6 +49,7 @@ model DocumentVersion {
   content          Json
   metadata         Json?
   templateSettings Json?
+  numberedHeadings Boolean  @default(true)
   createdAt        DateTime @default(now())
 
   document         Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
