@@ -28,6 +28,12 @@ export const renderBodySchema = z
     // above — see anvilnote-web's numberedHeadings field for why this stays
     // top-level.
     numberedHeadings: z.boolean().optional(),
+    // Same reasoning as numberedHeadings above — document-level, not part
+    // of the per-template `options` dict.
+    marginTopCm: z.number().positive().nullable().optional(),
+    marginBottomCm: z.number().positive().nullable().optional(),
+    marginLeftCm: z.number().positive().nullable().optional(),
+    marginRightCm: z.number().positive().nullable().optional(),
     exportOptions: z
       .object({
         pageSize: z.enum(["A4", "Letter"]).optional(),

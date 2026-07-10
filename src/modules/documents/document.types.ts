@@ -10,6 +10,10 @@ export type DocumentRecord = {
   templateSettings: Record<string, AnvilMetadataValue>;
   templateId: string | null;
   numberedHeadings: boolean;
+  marginTopCm: number | null;
+  marginBottomCm: number | null;
+  marginLeftCm: number | null;
+  marginRightCm: number | null;
   projectId: string | null;
   createdAt: string;
   updatedAt: string;

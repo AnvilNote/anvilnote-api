@@ -29,6 +29,10 @@ function mapDocument(document: Document): DocumentRecord {
     templateSettings: normalizeMetadata(document.templateSettings),
     templateId: document.templateId,
     numberedHeadings: document.numberedHeadings,
+    marginTopCm: document.marginTopCm,
+    marginBottomCm: document.marginBottomCm,
+    marginLeftCm: document.marginLeftCm,
+    marginRightCm: document.marginRightCm,
     projectId: document.projectId,
     createdAt: document.createdAt.toISOString(),
     updatedAt: document.updatedAt.toISOString(),
@@ -57,6 +61,10 @@ export class DocumentService {
       templateSettings: toJsonValue(input.templateSettings),
       templateId: input.templateId,
       numberedHeadings: input.numberedHeadings,
+      marginTopCm: input.marginTopCm,
+      marginBottomCm: input.marginBottomCm,
+      marginLeftCm: input.marginLeftCm,
+      marginRightCm: input.marginRightCm,
       ...(input.projectId
         ? { project: { connect: { id: input.projectId } } }
         : {}),
@@ -87,6 +95,10 @@ export class DocumentService {
         : {}),
       ...(input.templateId !== undefined ? { templateId: input.templateId } : {}),
       ...(input.numberedHeadings !== undefined ? { numberedHeadings: input.numberedHeadings } : {}),
+      ...(input.marginTopCm !== undefined ? { marginTopCm: input.marginTopCm } : {}),
+      ...(input.marginBottomCm !== undefined ? { marginBottomCm: input.marginBottomCm } : {}),
+      ...(input.marginLeftCm !== undefined ? { marginLeftCm: input.marginLeftCm } : {}),
+      ...(input.marginRightCm !== undefined ? { marginRightCm: input.marginRightCm } : {}),
       ...(input.projectId !== undefined
         ? input.projectId === null
           ? { project: { disconnect: true } }

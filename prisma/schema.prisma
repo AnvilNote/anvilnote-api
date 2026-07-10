@@ -23,6 +23,16 @@ model Document {
   // manifest capability flag for how other templates are protected
   // from an argument they don't declare).
   numberedHeadings Boolean           @default(true)
+  // Document-level, template-independent, same reasoning as
+  // numberedHeadings above: adjustable page margins, in cm. null (the
+  // default) means "use the active template's own built-in margins" —
+  // each side is an independent partial override (only plain-note's
+  // adapter chain currently acts on these; see anvilnote-renderer's
+  // supportsCustomMargins manifest capability flag).
+  marginTopCm      Float?
+  marginBottomCm   Float?
+  marginLeftCm     Float?
+  marginRightCm    Float?
   // Template slug (file-based template, not a DB foreign key).
   templateId       String?
   typstSource      String?
@@ -50,6 +60,10 @@ model DocumentVersion {
   metadata         Json?
   templateSettings Json?
   numberedHeadings Boolean  @default(true)
+  marginTopCm      Float?
+  marginBottomCm   Float?
+  marginLeftCm     Float?
+  marginRightCm    Float?
   createdAt        DateTime @default(now())
 
   document         Document @relation(fields: [documentId], references: [id], onDelete: Cascade)

@@ -13,6 +13,10 @@ export const createDocumentSchema = z.object({
   templateSettings: z.record(z.string(), metadataValueSchema).default({}),
   templateId: z.string().trim().min(1).nullable().default(null),
   numberedHeadings: z.boolean().default(true),
+  marginTopCm: z.number().positive().nullable().default(null),
+  marginBottomCm: z.number().positive().nullable().default(null),
+  marginLeftCm: z.number().positive().nullable().default(null),
+  marginRightCm: z.number().positive().nullable().default(null),
   projectId: z.string().trim().min(1).nullable().default(null),
 });
 
@@ -24,6 +28,10 @@ export const updateDocumentSchema = z
     templateSettings: z.record(z.string(), metadataValueSchema).optional(),
     templateId: z.string().trim().min(1).nullable().optional(),
     numberedHeadings: z.boolean().optional(),
+    marginTopCm: z.number().positive().nullable().optional(),
+    marginBottomCm: z.number().positive().nullable().optional(),
+    marginLeftCm: z.number().positive().nullable().optional(),
+    marginRightCm: z.number().positive().nullable().optional(),
     projectId: z.string().trim().min(1).nullable().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {

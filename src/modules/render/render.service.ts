@@ -195,6 +195,14 @@ export class RenderService {
         },
         template: { slug, meta, options },
         numberedHeadings: input?.numberedHeadings ?? document.numberedHeadings,
+        // input value (including an explicit null to clear an override) wins
+        // over the document's stored value when present; either way, a final
+        // null collapses to undefined since the renderer's own input type
+        // means "use the template's built-in default" via undefined, not null.
+        marginTopCm: (input?.marginTopCm !== undefined ? input.marginTopCm : document.marginTopCm) ?? undefined,
+        marginBottomCm: (input?.marginBottomCm !== undefined ? input.marginBottomCm : document.marginBottomCm) ?? undefined,
+        marginLeftCm: (input?.marginLeftCm !== undefined ? input.marginLeftCm : document.marginLeftCm) ?? undefined,
+        marginRightCm: (input?.marginRightCm !== undefined ? input.marginRightCm : document.marginRightCm) ?? undefined,
         options: {
           format: "pdf",
           ...(input?.exportOptions?.pageSize ? { pageSize: input.exportOptions.pageSize } : {}),
