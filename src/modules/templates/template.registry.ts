@@ -40,6 +40,14 @@ const templateManifestSchema = z.object({
   // was measured), so a template missing it should fail loudly, not
   // silently guess.
   textWidthCm: z.number().positive(),
+  // Optional, unlike textWidthCm above: only plain-note has a real
+  // measured value so far (see anvilnote-renderer's templates/plain-note/
+  // manifest.json) — every other template's manifest.json simply omits
+  // this field, and that's fine; question-block's written-answer
+  // "blank space" feature just isn't available under those templates
+  // (see anvilnote-web's question.ts writtenHeightCm attr, which falls
+  // back to null when this is absent).
+  textHeightCm: z.number().positive().optional(),
   fields: z.array(templateFieldSchema),
 });
 
@@ -67,6 +75,7 @@ function toSummary(manifest: TemplateManifest): TemplateSummary {
     tags: manifest.tags,
     fields: manifest.fields,
     textWidthCm: manifest.textWidthCm,
+    textHeightCm: manifest.textHeightCm,
     universeUrl: universeUrlFor(manifest.engine),
   };
 }
