@@ -194,6 +194,7 @@ export class RenderService {
           content,
         },
         template: { slug, meta, options },
+        numberedHeadings: input?.numberedHeadings ?? document.numberedHeadings,
         options: {
           format: "pdf",
           ...(input?.exportOptions?.pageSize ? { pageSize: input.exportOptions.pageSize } : {}),
