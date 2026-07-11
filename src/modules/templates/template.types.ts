@@ -48,6 +48,10 @@ export type TemplateManifest = {
    *  value so far. */
   textHeightCm?: number;
   fields: TemplateField[];
+  /** Whether this template's adapter chain applies a numbered-headings arg. */
+  supportsNumberedHeadings: boolean;
+  /** Whether this template's adapter chain applies margin-top/bottom/left/right args. */
+  supportsCustomMargins: boolean;
 };
 
 // Summary returned by the list endpoint (drops engine/fonts/headingOffset,
@@ -67,4 +71,8 @@ export type TemplateSummary = {
   textHeightCm?: number;
   /** Typst Universe page for the wrapped @preview package, when applicable. */
   universeUrl?: string;
+  /** Whether this template's adapter chain applies a numbered-headings arg. */
+  supportsNumberedHeadings: boolean;
+  /** Whether this template's adapter chain applies margin-top/bottom/left/right args. */
+  supportsCustomMargins: boolean;
 };

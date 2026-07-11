@@ -49,6 +49,14 @@ const templateManifestSchema = z.object({
   // back to null when this is absent).
   textHeightCm: z.number().positive().optional(),
   fields: z.array(templateFieldSchema),
+  // Mirrors anvilnote-renderer's own template-loader.ts schema — whether
+  // this template's adapter chain actually applies a numbered-headings/
+  // margin override. Exposed to the web app so its metadata panel can hide
+  // a control that would otherwise silently do nothing (or, for a couple
+  // of templates whose wrapped package forbids `set page` inside its own
+  // layout container, actually fail to render).
+  supportsNumberedHeadings: z.boolean().default(false),
+  supportsCustomMargins: z.boolean().default(false),
 });
 
 function templatesDir() {
@@ -77,6 +85,8 @@ function toSummary(manifest: TemplateManifest): TemplateSummary {
     textWidthCm: manifest.textWidthCm,
     textHeightCm: manifest.textHeightCm,
     universeUrl: universeUrlFor(manifest.engine),
+    supportsNumberedHeadings: manifest.supportsNumberedHeadings,
+    supportsCustomMargins: manifest.supportsCustomMargins,
   };
 }
 
