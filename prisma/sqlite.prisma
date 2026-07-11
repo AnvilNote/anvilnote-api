@@ -23,6 +23,11 @@ model Document {
   content          Json
   metadata         Json?
   templateSettings Json?
+  numberedHeadings Boolean           @default(true)
+  marginTopCm      Float?
+  marginBottomCm   Float?
+  marginLeftCm     Float?
+  marginRightCm    Float?
   templateId       String?
   typstSource      String?
   projectId        String?
@@ -41,6 +46,11 @@ model DocumentVersion {
   content          Json
   metadata         Json?
   templateSettings Json?
+  numberedHeadings Boolean  @default(true)
+  marginTopCm      Float?
+  marginBottomCm   Float?
+  marginLeftCm     Float?
+  marginRightCm    Float?
   createdAt        DateTime @default(now())
 
   document         Document @relation(fields: [documentId], references: [id], onDelete: Cascade)

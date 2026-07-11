@@ -22,6 +22,11 @@ const STATEMENTS: string[] = [
     "content" JSONB NOT NULL,
     "metadata" JSONB,
     "templateSettings" JSONB,
+    "numberedHeadings" BOOLEAN NOT NULL DEFAULT true,
+    "marginTopCm" REAL,
+    "marginBottomCm" REAL,
+    "marginLeftCm" REAL,
+    "marginRightCm" REAL,
     "templateId" TEXT,
     "typstSource" TEXT,
     "projectId" TEXT,
@@ -56,6 +61,11 @@ const STATEMENTS: string[] = [
     "content" JSONB NOT NULL,
     "metadata" JSONB,
     "templateSettings" JSONB,
+    "numberedHeadings" BOOLEAN NOT NULL DEFAULT true,
+    "marginTopCm" REAL,
+    "marginBottomCm" REAL,
+    "marginLeftCm" REAL,
+    "marginRightCm" REAL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "DocumentVersion_documentId_fkey" FOREIGN KEY ("documentId")
       REFERENCES "Document" ("id") ON DELETE CASCADE ON UPDATE CASCADE
@@ -94,6 +104,27 @@ export async function ensureSqliteSchema(client: PrismaClient): Promise<void> {
   // Projects predate the icon field: add it once, idempotently.
   if (!(await columnExists(client, "Project", "icon"))) {
     await client.$executeRawUnsafe(`ALTER TABLE "Project" ADD COLUMN "icon" TEXT`);
+  }
+
+  // Existing databases predate numberedHeadings/margins (both added the same
+  // session, on Document and DocumentVersion) — this was the actual bug a
+  // real desktop build hit: PATCH /api/documents/:id 500'd because Prisma's
+  // generated SQLite client expected these columns and the on-disk table
+  // never got them, since this bootstrap file wasn't updated when those
+  // features shipped. Add them once, idempotently, same pattern as
+  // projectId/icon above. Brand-new databases already have them from the
+  // CREATE TABLE statements above.
+  for (const table of ["Document", "DocumentVersion"] as const) {
+    if (!(await columnExists(client, table, "numberedHeadings"))) {
+      await client.$executeRawUnsafe(
+        `ALTER TABLE "${table}" ADD COLUMN "numberedHeadings" BOOLEAN NOT NULL DEFAULT true`,
+      );
+    }
+    for (const column of ["marginTopCm", "marginBottomCm", "marginLeftCm", "marginRightCm"] as const) {
+      if (!(await columnExists(client, table, column))) {
+        await client.$executeRawUnsafe(`ALTER TABLE "${table}" ADD COLUMN "${column}" REAL`);
+      }
+    }
   }
 }
 
