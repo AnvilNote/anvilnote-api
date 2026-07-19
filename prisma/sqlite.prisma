@@ -37,6 +37,7 @@ model Document {
   project          Project?          @relation(fields: [projectId], references: [id], onDelete: SetNull)
   renderOutputs    RenderOutput[]
   versions         DocumentVersion[]
+  aiConversations  AIConversation[]
 }
 
 model DocumentVersion {
@@ -87,4 +88,65 @@ model RenderOutput {
   updatedAt        DateTime  @updatedAt
 
   document         Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model AIConversation {
+  id            String                  @id @default(cuid())
+  documentId    String
+  title         String
+  lastMessageAt DateTime                @default(now())
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  document      Document                @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  messages      AIConversationMessage[]
+
+  @@index([documentId, lastMessageAt, id])
+}
+
+model AIConversationMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  sequence       Int
+  role           String
+  content        String
+  intent         String
+  draft          Json?
+  createdAt      DateTime       @default(now())
+
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  attachments    AIConversationAttachment[]
+
+  @@unique([conversationId, sequence])
+  @@index([conversationId, createdAt, id])
+}
+
+model AIConversationAttachment {
+  id           String                @id
+  messageId    String
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  sha256       String
+  storageKey   String
+  createdAt    DateTime              @default(now())
+
+  message      AIConversationMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId, createdAt, id])
+  @@index([storageKey])
+}
+
+model AIKeyProfile {
+  id                String   @id @default(cuid())
+  providerId        String
+  label             String
+  encryptedSecret   String
+  safeDisplayPrefix String
+  lastFour          String
+  isActive          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([providerId, isActive])
 }

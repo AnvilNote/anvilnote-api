@@ -180,7 +180,7 @@ test("session-only browser BYOK capability and authorization use the same policy
   );
 });
 
-test("compose route accepts the OpenAI public mark-array payload without returning 422", async () => {
+test("compose route normalizes multiple OpenAI text nodes that omit marks without returning 422", async () => {
   const providerPayload = {
     suggestedTitle: "Taipei history",
     document: {
@@ -190,12 +190,13 @@ test("compose route accepts the OpenAI public mark-array payload without returni
         {
           type: "paragraph" as const,
           content: [
-            { type: "text" as const, text: "Taipei ", marks: null },
+            { type: "text" as const, text: "Taipei " },
             {
               type: "text" as const,
               text: "history",
               marks: [{ type: "bold" as const }],
             },
+            { type: "text" as const, text: " is a long story" },
             {
               type: "text" as const,
               text: ".",
@@ -249,6 +250,7 @@ test("compose route accepts the OpenAI public mark-array payload without returni
       assert.deepEqual(body.data.document.content[0].content, [
         { type: "text", text: "Taipei " },
         { type: "text", text: "history", marks: [{ type: "bold" }] },
+        { type: "text", text: " is a long story" },
         {
           type: "text",
           text: ".",

@@ -4,7 +4,7 @@ import tsPlugin from "@typescript-eslint/eslint-plugin";
 
 export default [
   {
-    ignores: ["dist/**", "node_modules/**", "storage/**"],
+    ignores: ["dist/**", "node_modules/**", "storage/**", "src/generated/**"],
   },
   js.configs.recommended,
   {
@@ -37,6 +37,16 @@ export default [
           "varsIgnorePattern": "^_"
         }
       ]
+    },
+  },
+  {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        Buffer: "readonly",
+      },
     },
   },
 ];

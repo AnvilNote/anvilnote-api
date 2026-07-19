@@ -47,9 +47,8 @@ ANVILNOTE_RENDERER_PATH="../anvilnote-renderer"
 ```bash
 pnpm install
 cp .env.example .env
-pnpm prisma:migrate --name init
 pnpm prisma:generate
-pnpm dev
+make dev
 ```
 
 Default API URL:
@@ -166,6 +165,15 @@ The API no longer owns BlockNote-to-Typst conversion, Typst escaping, Typst temp
 - `POST /api/ai/compose`
 - `POST /api/ai/rewrite-selection`
 - `POST /api/ai/requests/:requestId/cancel`
+- `GET /api/documents/:documentId/ai-conversations`
+- `GET /api/documents/:documentId/ai-conversations/:conversationId/messages`
+- `POST /api/documents/:documentId/ai-conversations/turns`
+- `PATCH` / `DELETE` `/api/documents/:documentId/ai-conversations/:conversationId`
+
+Desktop-only, per-launch-token-protected key-profile routes live below
+`/api/ai/key-profiles`. They accept/store safeStorage ciphertext and return
+only masked profile metadata to renderer-facing callers; API never decrypts a
+profile.
 
 `@anvilnote/ai-writer` owns prompts, policies, schemas, pricing, provider
 execution, retries, and OpenAI error mapping. Express owns strict request
@@ -173,6 +181,16 @@ validation, request-scoped credential resolution, attachment extraction,
 cancellation, and stable HTTP errors. Routes never import OpenAI directly or
 log instructions, selected content, attachment text, credentials, or raw
 provider responses.
+
+Conversation turns never trust browser-supplied history or assistant drafts.
+API loads only the newest eight messages for the requested document
+conversation, passes a bounded display-text projection to AI Writer, and saves
+only the verified assistant draft needed for later safe preview. Lists are
+cursor-paginated (20 conversations, 30 messages). `make dev` applies committed
+Postgres migrations before starting the watcher. Desktop turns may persist
+message-linked safe attachment metadata; public responses expose only the
+attachment ID, display filename, MIME type, and size, never the hash or storage
+key. Browser-development raw attachments remain request/session-only.
 
 Local browser development uses a memory-only key and `make dev` binds the API
 to `127.0.0.1`. Desktop requests require the per-launch token and explicit

@@ -20,7 +20,14 @@ import { renderRouter } from "./modules/render/render.routes";
 import { docxExportRouter } from "./modules/docx-export/docx-export.routes";
 import { chartsRouter } from "./modules/charts/charts.routes";
 import { templateRouter } from "./modules/templates/template.routes";
+import { AIWriterApplicationService } from "./modules/ai/ai-application.service";
+import { AIRequestCancellationRegistry } from "./modules/ai/ai-cancellation-registry";
 import { createAIRouter } from "./modules/ai/ai.routes";
+import { AIConversationRepository } from "./modules/ai-conversations/ai-conversation.repository";
+import { createAIConversationRouter } from "./modules/ai-conversations/ai-conversation.routes";
+import { AIConversationService } from "./modules/ai-conversations/ai-conversation.service";
+import { createAIKeyProfileRouter } from "./modules/ai-key-profiles/ai-key-profile.routes";
+import { DocumentService } from "./modules/documents/document.service";
 
 export async function createApp() {
   await Promise.all([
@@ -94,14 +101,32 @@ export async function createApp() {
   app.use("/api", documentVersionRouter);
   app.use("/api", docxExportRouter);
   app.use("/api", chartsRouter);
+  const aiPolicy = {
+    runtime: env.ANVILNOTE_RUNTIME,
+    desktopTrustToken: env.ANVILNOTE_DESKTOP_TRUST_TOKEN,
+    browserSessionByok: env.ANVILNOTE_BROWSER_SESSION_BYOK,
+  } as const;
+  const aiService = new AIWriterApplicationService();
+  const aiCancellations = new AIRequestCancellationRegistry();
+  app.use(
+    "/api",
+    createAIConversationRouter({
+      service: new AIConversationService({
+        repository: new AIConversationRepository(),
+        documents: new DocumentService(),
+        writer: aiService,
+      }),
+      policy: aiPolicy,
+      cancellationRegistry: aiCancellations,
+    }),
+  );
+  app.use("/api/ai", createAIKeyProfileRouter({ policy: aiPolicy }));
   app.use(
     "/api/ai",
     createAIRouter({
-      policy: {
-        runtime: env.ANVILNOTE_RUNTIME,
-        desktopTrustToken: env.ANVILNOTE_DESKTOP_TRUST_TOKEN,
-        browserSessionByok: env.ANVILNOTE_BROWSER_SESSION_BYOK,
-      },
+      service: aiService,
+      cancellationRegistry: aiCancellations,
+      policy: aiPolicy,
     }),
   );
 
