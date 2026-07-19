@@ -29,7 +29,13 @@ export const corsOptions: CorsOptions = {
   },
   credentials: env.CORS_CREDENTIALS,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Request-Id",
+    "X-AnvilNote-AI-Credential",
+    "X-AnvilNote-Desktop-Token",
+  ],
 };
 
 export { allowedOrigins };

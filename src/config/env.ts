@@ -37,6 +37,25 @@ const envSchema = z.object({
   ANVILNOTE_DOCX_EXPORTER_PATH: z.string().default("../anvilnote-docx-exporter"),
   // Sibling repo: function-plot spec -> SVG via Typst + simple-plot.
   ANVILNOTE_CHARTS_PATH: z.string().default("../anvilnote-charts"),
+  ANVILNOTE_RUNTIME: z.enum(["desktop", "remote"]).default("remote"),
+  ANVILNOTE_DESKTOP_TRUST_TOKEN: z.string().min(32).max(512).optional(),
+  ANVILNOTE_BROWSER_SESSION_BYOK: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((value) => value === "true"),
+}).superRefine((value, context) => {
+  if (value.ANVILNOTE_RUNTIME === "desktop") {
+    if (value.HOST !== "127.0.0.1") {
+      context.addIssue({ code: "custom", path: ["HOST"], message: "Desktop API must bind 127.0.0.1." });
+    }
+    if (!value.ANVILNOTE_DESKTOP_TRUST_TOKEN) {
+      context.addIssue({
+        code: "custom",
+        path: ["ANVILNOTE_DESKTOP_TRUST_TOKEN"],
+        message: "Desktop runtime requires a per-launch trust token.",
+      });
+    }
+  }
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -49,9 +68,29 @@ if (!parsed.success) {
 }
 
 const cwd = process.cwd();
+const browserSessionByok =
+  process.env.ANVILNOTE_BROWSER_SESSION_BYOK === undefined
+    ? parsed.data.NODE_ENV === "development"
+    : parsed.data.ANVILNOTE_BROWSER_SESSION_BYOK;
+
+if (
+  parsed.data.NODE_ENV === "development" &&
+  browserSessionByok &&
+  parsed.data.HOST !== "127.0.0.1" &&
+  parsed.data.HOST !== "::1" &&
+  parsed.data.HOST !== "localhost"
+) {
+  throw new Error(
+    "Invalid environment variables:\nHOST: Development browser BYOK must bind a loopback address.",
+  );
+}
 
 export const env = {
   ...parsed.data,
+  // Local development supports request-scoped, memory-only browser BYOK out
+  // of the box. Production stays desktop-only unless the deployment owner
+  // explicitly opts in after providing HTTPS at the reverse proxy.
+  ANVILNOTE_BROWSER_SESSION_BYOK: browserSessionByok,
   STORAGE_DIR: path.resolve(cwd, parsed.data.STORAGE_DIR),
   TYPST_STORAGE_DIR: path.resolve(cwd, parsed.data.TYPST_STORAGE_DIR),
   PDF_STORAGE_DIR: path.resolve(cwd, parsed.data.PDF_STORAGE_DIR),

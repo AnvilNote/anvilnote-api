@@ -20,6 +20,7 @@ import { renderRouter } from "./modules/render/render.routes";
 import { docxExportRouter } from "./modules/docx-export/docx-export.routes";
 import { chartsRouter } from "./modules/charts/charts.routes";
 import { templateRouter } from "./modules/templates/template.routes";
+import { createAIRouter } from "./modules/ai/ai.routes";
 
 export async function createApp() {
   await Promise.all([
@@ -93,6 +94,16 @@ export async function createApp() {
   app.use("/api", documentVersionRouter);
   app.use("/api", docxExportRouter);
   app.use("/api", chartsRouter);
+  app.use(
+    "/api/ai",
+    createAIRouter({
+      policy: {
+        runtime: env.ANVILNOTE_RUNTIME,
+        desktopTrustToken: env.ANVILNOTE_DESKTOP_TRUST_TOKEN,
+        browserSessionByok: env.ANVILNOTE_BROWSER_SESSION_BYOK,
+      },
+    }),
+  );
 
   app.use(notFoundMiddleware);
   app.use(errorMiddleware);

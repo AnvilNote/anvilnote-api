@@ -103,6 +103,8 @@ Allowed headers:
 - `Content-Type`
 - `Authorization`
 - `X-Request-Id`
+- `X-AnvilNote-AI-Credential`
+- `X-AnvilNote-Desktop-Token`
 
 When `CORS_CREDENTIALS=true`, the API does not use wildcard origins.
 
@@ -154,6 +156,32 @@ The API no longer owns BlockNote-to-Typst conversion, Typst escaping, Typst temp
 - `POST /api/documents/:id/render`
 - `GET /api/render-jobs/:id`
 - `GET /files/pdf/:filename`
+
+### Smart Mode
+
+- `GET /api/ai/providers`
+- `POST /api/ai/estimate`
+- `POST /api/ai/test-connection`
+- `POST /api/ai/attachments/extract`
+- `POST /api/ai/compose`
+- `POST /api/ai/rewrite-selection`
+- `POST /api/ai/requests/:requestId/cancel`
+
+`@anvilnote/ai-writer` owns prompts, policies, schemas, pricing, provider
+execution, retries, and OpenAI error mapping. Express owns strict request
+validation, request-scoped credential resolution, attachment extraction,
+cancellation, and stable HTTP errors. Routes never import OpenAI directly or
+log instructions, selected content, attachment text, credentials, or raw
+provider responses.
+
+Local browser development uses a memory-only key and `make dev` binds the API
+to `127.0.0.1`. Desktop requests require the per-launch token and explicit
+Desktop runtime. Remote browser BYOK is disabled unless a deployment operator
+explicitly enables it behind HTTPS.
+
+Attachments are bounded in-memory multipart buffers: up to five files, 10 MB
+per file and 25 MB total. TXT/Markdown, text-layer PDF, and DOCX are supported;
+image-only PDF reports a warning and no OCR is performed.
 
 ## Example Requests
 
