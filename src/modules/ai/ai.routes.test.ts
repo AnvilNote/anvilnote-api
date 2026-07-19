@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
 import express from "express";
 import { test } from "node:test";
+import {
+  AIProviderRegistry,
+  OpenAIProviderAdapter,
+  type OpenAIParsedResponseLike,
+} from "@anvilnote/ai-writer/server";
 import { errorMiddleware } from "../../middleware/error.middleware";
 import { createAIRouter, type AIApplicationPort } from "./ai.routes";
+import { AIWriterApplicationService } from "./ai-application.service";
 import type { AIRequestPolicyConfig } from "./ai-credential-resolver";
 
 const fakeResult = {
@@ -46,8 +52,9 @@ async function withServer(
     desktopTrustToken: "launch-token",
     browserSessionByok: false,
   },
+  suppliedService?: AIApplicationPort,
 ) {
-  const service: AIApplicationPort = {
+  const service: AIApplicationPort = suppliedService ?? {
     getProviderMetadata: () => ({ providers: [{ id: "openai" }] }),
     estimate: () => ({ approximate: true }),
     testConnection: async () => ({
@@ -79,6 +86,29 @@ async function withServer(
       server.close((error) => (error ? reject(error) : resolve())),
     );
   }
+}
+
+function composeResponse(parsed: unknown): OpenAIParsedResponseLike {
+  return {
+    id: "resp_route_compose",
+    _request_id: "req_route_compose",
+    status: "completed",
+    incomplete_details: null,
+    output: [
+      {
+        type: "message",
+        content: [{ type: "output_text", text: JSON.stringify(parsed) }],
+      },
+    ],
+    output_parsed: parsed,
+    usage: {
+      input_tokens: 100,
+      input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 },
+      output_tokens: 50,
+      output_tokens_details: { reasoning_tokens: 0 },
+      total_tokens: 150,
+    },
+  };
 }
 
 test("provider metadata is public but execution requires the exact desktop trust token", async () => {
@@ -147,5 +177,91 @@ test("session-only browser BYOK capability and authorization use the same policy
       assert.equal(response.status, 200);
     },
     { runtime: "remote", browserSessionByok: true },
+  );
+});
+
+test("compose route accepts the OpenAI public mark-array payload without returning 422", async () => {
+  const providerPayload = {
+    suggestedTitle: "Taipei history",
+    document: {
+      schemaVersion: "anvilnote.document.v1" as const,
+      type: "doc" as const,
+      content: [
+        {
+          type: "paragraph" as const,
+          content: [
+            { type: "text" as const, text: "Taipei ", marks: null },
+            {
+              type: "text" as const,
+              text: "history",
+              marks: [{ type: "bold" as const }],
+            },
+            {
+              type: "text" as const,
+              text: ".",
+              marks: [
+                {
+                  type: "link" as const,
+                  attrs: {
+                    href: "https://example.com/taipei",
+                    title: null,
+                    target: null,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    summary: "Created a marked paragraph.",
+    warnings: [],
+  };
+  const service = new AIWriterApplicationService({
+    providerRegistry: new AIProviderRegistry([
+      new OpenAIProviderAdapter({
+        clientFactory: () => ({
+          responses: { parse: async () => composeResponse(providerPayload) },
+        }),
+      }),
+    ]),
+  });
+
+  await withServer(
+    async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/api/ai/compose`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-anvilnote-ai-credential": "fake-key",
+          "x-anvilnote-desktop-token": "launch-token",
+        },
+        body: JSON.stringify({
+          requestId: "route-public-mark-array",
+          provider: { id: "openai", model: "gpt-5.6-terra" },
+          instruction: "Write one paragraph.",
+          context: { locale: "en", writingStyle: "neutral" },
+          options: { humanizerEnabled: false },
+        }),
+      });
+      assert.equal(response.status, 200);
+      const body = await response.json();
+      assert.deepEqual(body.data.document.content[0].content, [
+        { type: "text", text: "Taipei " },
+        { type: "text", text: "history", marks: [{ type: "bold" }] },
+        {
+          type: "text",
+          text: ".",
+          marks: [
+            {
+              type: "link",
+              attrs: { href: "https://example.com/taipei" },
+            },
+          ],
+        },
+      ]);
+    },
+    undefined,
+    service,
   );
 });
