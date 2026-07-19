@@ -54,7 +54,8 @@ dev: db-up ## Start the Express development server with hot reload
 		echo "Missing DATABASE_URL in $(ENV_FILE). Update the file before starting the API."; \
 		exit 1; \
 	fi
-	$(PM) dev
+	$(PM) prisma:deploy
+	HOST=127.0.0.1 $(PM) dev
 
 build: ## Compile the TypeScript source into dist
 	$(PM) build

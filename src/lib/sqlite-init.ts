@@ -70,8 +70,65 @@ const STATEMENTS: string[] = [
     CONSTRAINT "DocumentVersion_documentId_fkey" FOREIGN KEY ("documentId")
       REFERENCES "Document" ("id") ON DELETE CASCADE ON UPDATE CASCADE
   )`,
+  `CREATE TABLE IF NOT EXISTS "AIConversation" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "documentId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "lastMessageAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "AIConversation_documentId_fkey" FOREIGN KEY ("documentId")
+      REFERENCES "Document" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS "AIConversationMessage" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "conversationId" TEXT NOT NULL,
+    "sequence" INTEGER NOT NULL,
+    "role" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "intent" TEXT NOT NULL,
+    "draft" JSONB,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "AIConversationMessage_conversationId_fkey" FOREIGN KEY ("conversationId")
+      REFERENCES "AIConversation" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "AIConversationMessage_conversationId_sequence_key"
+      UNIQUE ("conversationId", "sequence")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "AIKeyProfile" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "providerId" TEXT NOT NULL,
+    "label" TEXT NOT NULL,
+    "encryptedSecret" TEXT NOT NULL,
+    "safeDisplayPrefix" TEXT NOT NULL,
+    "lastFour" TEXT NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS "AIConversationAttachment" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "messageId" TEXT NOT NULL,
+    "originalName" TEXT NOT NULL,
+    "mimeType" TEXT NOT NULL,
+    "sizeBytes" INTEGER NOT NULL,
+    "sha256" TEXT NOT NULL,
+    "storageKey" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "AIConversationAttachment_messageId_fkey" FOREIGN KEY ("messageId")
+      REFERENCES "AIConversationMessage" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  )`,
   `CREATE INDEX IF NOT EXISTS "DocumentVersion_documentId_createdAt_idx"
     ON "DocumentVersion" ("documentId", "createdAt")`,
+  `CREATE INDEX IF NOT EXISTS "AIConversation_documentId_lastMessageAt_id_idx"
+    ON "AIConversation" ("documentId", "lastMessageAt", "id")`,
+  `CREATE INDEX IF NOT EXISTS "AIConversationMessage_conversationId_createdAt_id_idx"
+    ON "AIConversationMessage" ("conversationId", "createdAt", "id")`,
+  `CREATE INDEX IF NOT EXISTS "AIKeyProfile_providerId_isActive_idx"
+    ON "AIKeyProfile" ("providerId", "isActive")`,
+  `CREATE INDEX IF NOT EXISTS "AIConversationAttachment_messageId_createdAt_id_idx"
+    ON "AIConversationAttachment" ("messageId", "createdAt", "id")`,
+  `CREATE INDEX IF NOT EXISTS "AIConversationAttachment_storageKey_idx"
+    ON "AIConversationAttachment" ("storageKey")`,
 ];
 
 /** True if `table` already has a column named `column`. */

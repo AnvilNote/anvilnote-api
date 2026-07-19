@@ -107,7 +107,7 @@ class TemplateRegistry {
     const map = new Map<string, TemplateManifest>();
     const dir = templatesDir();
 
-    let entries: fs.Dirent[] = [];
+    let entries: fs.Dirent[];
     try {
       entries = fs.readdirSync(dir, { withFileTypes: true });
     } catch (error) {

@@ -1,5 +1,4 @@
 import type { Request, Response } from "express";
-import { HttpError } from "../../lib/http-error";
 import { templateSlugParamsSchema } from "./template.schemas";
 import { TemplateService } from "./template.service";
 

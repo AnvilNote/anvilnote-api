@@ -20,11 +20,9 @@ const logLevels: ("warn" | "error")[] =
 function createPrisma(): PrismaClient {
   type Ctor = { PrismaClient: new (opts?: unknown) => unknown };
   if ((process.env.DATABASE_URL ?? "").startsWith("file:")) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require("../generated/sqlite-client") as Ctor;
     return new mod.PrismaClient({ log: logLevels }) as unknown as PrismaClient;
   }
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const mod = require("@prisma/client") as Ctor;
   return new mod.PrismaClient({ log: logLevels }) as unknown as PrismaClient;
 }
