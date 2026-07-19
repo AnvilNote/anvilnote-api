@@ -233,7 +233,11 @@ class FakeConversationRepository implements AIConversationRepositoryPort {
       createdAt: now,
     };
     this.messages.set(conversation.id, [...existing, message]);
-    const updated = { ...conversation, lastMessageAt: now, updatedAt: now };
+    const nextTitle = input.automaticTitle
+      && conversation.title === input.automaticTitle.expectedTitle
+      ? input.automaticTitle.title
+      : conversation.title;
+    const updated = { ...conversation, title: nextTitle, lastMessageAt: now, updatedAt: now };
     this.conversations.set(conversation.id, updated);
     return { conversation: updated, message };
   }
@@ -267,7 +271,7 @@ test("conversation turn loads the persisted document and only the latest eight s
     { apiKey: "fake-key" },
   );
 
-  assert.equal(first.conversation.title, "Create a useful first draft.");
+  assert.equal(first.conversation.title, "Suggested ti");
   assert.equal(repository.messages.get(first.conversation.id)?.length, 2);
   assert.deepEqual(captured.request, {
     requestId: "conversation-turn-1",
@@ -298,6 +302,157 @@ test("conversation turn loads the persisted document and only the latest eight s
   assert.equal(JSON.stringify(storedAssistant).includes("warning"), false);
 });
 
+test("first completed turn uses a concise punctuation-free AI-authored title", async () => {
+  const repository = new FakeConversationRepository();
+  const service = new AIConversationService({
+    repository,
+    documents: { getDocument: async () => documentRecord },
+    writer: {
+      execute: async () => ({
+        ...result,
+        suggestedTitle: "極限函數定義、唯一性證明與例題解析！",
+      }),
+    },
+  });
+
+  const completed = await service.executeTurn(
+    {
+      documentId: "document-a",
+      request: {
+        requestId: "conversation-ai-title-1",
+        provider: { id: "openai", model: "gpt-5.6-terra" },
+        instruction: "請幫我寫一份內容非常完整的極限講義",
+        context: { locale: "zh-TW", writingStyle: "natural" },
+        options: { humanizerEnabled: true },
+      },
+    },
+    { apiKey: "fake-key" },
+  );
+
+  assert.equal(completed.conversation.title, "極限函數定義唯一性證明與");
+  assert.equal(Array.from(completed.conversation.title).length, 12);
+  assert.doesNotMatch(completed.conversation.title, /\p{P}/u);
+});
+
+test("manual rename during the first provider call wins over automatic AI naming", async () => {
+  const repository = new FakeConversationRepository();
+  const service = new AIConversationService({
+    repository,
+    documents: { getDocument: async () => documentRecord },
+    writer: {
+      execute: async () => {
+        await repository.renameConversation("conversation-1", "我的自訂名稱");
+        return result;
+      },
+    },
+  });
+
+  const completed = await service.executeTurn(
+    {
+      documentId: "document-a",
+      request: {
+        requestId: "conversation-manual-title-1",
+        provider: { id: "openai", model: "gpt-5.6-terra" },
+        instruction: "請建立一份草稿",
+        context: { locale: "zh-TW", writingStyle: "natural" },
+        options: { humanizerEnabled: true },
+      },
+    },
+    { apiKey: "fake-key" },
+  );
+
+  assert.equal(completed.conversation.title, "我的自訂名稱");
+});
+
+test("automatic title falls back to the AI compose summary when suggestedTitle is null", async () => {
+  const repository = new FakeConversationRepository();
+  const service = new AIConversationService({
+    repository,
+    documents: { getDocument: async () => documentRecord },
+    writer: {
+      execute: async () => ({
+        ...result,
+        suggestedTitle: null,
+        summary: "極限、核心觀念整理。",
+      }),
+    },
+  });
+
+  const completed = await service.executeTurn(
+    {
+      documentId: "document-a",
+      request: {
+        requestId: "conversation-summary-title-1",
+        provider: { id: "openai", model: "gpt-5.6-terra" },
+        instruction: "整理這份內容",
+        context: { locale: "zh-TW", writingStyle: "natural" },
+        options: { humanizerEnabled: true },
+      },
+    },
+    { apiKey: "fake-key" },
+  );
+
+  assert.equal(completed.conversation.title, "極限核心觀念整理");
+});
+
+test("first rewrite turn derives its automatic title from the AI change summary", async () => {
+  const repository = new FakeConversationRepository();
+  const rewriteResult: AIWriterResult = {
+    schemaVersion: "anvilnote.ai.rewrite-result.v1",
+    kind: "rewrite-selection",
+    replacement: {
+      schemaVersion: "anvilnote.fragment.v1",
+      type: "fragment",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "精簡內容" }] }],
+    },
+    changeSummary: "精簡段落、保留重點。",
+    preservedElements: [],
+    warnings: [],
+    metadata: {
+      profileId: "rewrite.selection.v1",
+      profileVersion: 1,
+      promptTemplateId: "prompt.rewrite-selection.v1",
+      promptVersion: 1,
+      schemaVersion: "anvilnote.ai.rewrite-result.v1",
+      policyVersions: [
+        { id: "policy.factual-integrity.v1", version: 1 },
+        { id: "policy.protected-content.v1", version: 1 },
+        { id: "policy.style.natural.v1", version: 1 },
+      ],
+    },
+    usage: result.usage,
+  };
+  const service = new AIConversationService({
+    repository,
+    documents: { getDocument: async () => documentRecord },
+    writer: { execute: async () => rewriteResult },
+  });
+
+  const completed = await service.executeTurn(
+    {
+      documentId: "document-a",
+      request: {
+        requestId: "conversation-rewrite-title-1",
+        provider: { id: "openai", model: "gpt-5.6-terra" },
+        instruction: "幫我精簡選取內容",
+        context: {
+          locale: "zh-TW",
+          writingStyle: "natural",
+          selectedContent: {
+            schemaVersion: "anvilnote.fragment.v1",
+            type: "fragment",
+            content: [{ type: "paragraph", content: [{ type: "text", text: "原始內容" }] }],
+          },
+        },
+        options: { humanizerEnabled: true },
+      },
+    },
+    { apiKey: "fake-key" },
+  );
+
+  assert.equal(completed.conversation.title, "精簡段落保留重點");
+});
+
 test("conversation turn converts the persisted wrapped Tiptap doc into AI document context", async () => {
   const repository = new FakeConversationRepository();
   const captured: { request?: AIWriterRequest } = {};
@@ -314,6 +469,93 @@ test("conversation turn converts the persisted wrapped Tiptap doc into AI docume
                 type: "heading",
                 attrs: { id: "heading-1", level: 1 },
                 content: [{ type: "text", text: "Stored heading" }],
+              },
+              {
+                type: "callout",
+                attrs: {
+                  kind: "warning",
+                  title: "Important",
+                  titleTouched: true,
+                },
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [
+                      { type: "text", text: "Use " },
+                      { type: "inlineMath", attrs: { latex: "epsilon > 0" } },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: "proof",
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [{ type: "text", text: "Therefore the claim follows." }],
+                  },
+                ],
+              },
+              {
+                type: "question",
+                content: [
+                  {
+                    type: "questionItem",
+                    attrs: {
+                      kind: "single",
+                      writtenMode: "lines",
+                      writtenLines: 3,
+                      writtenHeightPercent: 20,
+                      writtenHeightCm: null,
+                      multiForceOneColumn: true,
+                      stashedChoiceJSON: null,
+                    },
+                    content: [
+                      {
+                        type: "paragraph",
+                        content: [{ type: "text", text: "Choose one." }],
+                      },
+                      {
+                        type: "choiceList",
+                        content: [
+                          {
+                            type: "choiceItem",
+                            content: [
+                              {
+                                type: "paragraph",
+                                content: [{ type: "text", text: "Option A" }],
+                              },
+                            ],
+                          },
+                          {
+                            type: "choiceItem",
+                            content: [
+                              { type: "blockMath", attrs: { latex: "L=M" } },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: "questionItem",
+                    attrs: {
+                      kind: "written",
+                      writtenMode: "blank",
+                      writtenLines: 3,
+                      writtenHeightPercent: 30,
+                      writtenHeightCm: 7.2,
+                      multiForceOneColumn: true,
+                      stashedChoiceJSON: null,
+                    },
+                    content: [
+                      {
+                        type: "paragraph",
+                        content: [{ type: "text", text: "Show your work." }],
+                      },
+                    ],
+                  },
+                ],
               },
               { type: "paragraph" },
             ],
@@ -351,6 +593,85 @@ test("conversation turn converts the persisted wrapped Tiptap doc into AI docume
         type: "heading",
         attrs: { id: "heading-1", level: 1 },
         content: [{ type: "text", text: "Stored heading" }],
+      },
+      {
+        type: "callout",
+        attrs: { kind: "warning", title: "Important" },
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              { type: "text", text: "Use " },
+              { type: "inlineMath", attrs: { latex: "epsilon > 0" } },
+            ],
+          },
+        ],
+      },
+      {
+        type: "proof",
+        content: [
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "Therefore the claim follows." }],
+          },
+        ],
+      },
+      {
+        type: "question",
+        content: [
+          {
+            type: "questionItem",
+            attrs: {
+              kind: "single",
+              writtenMode: "lines",
+              writtenLines: 3,
+              writtenHeightPercent: 20,
+              writtenHeightCm: null,
+              multiForceOneColumn: true,
+            },
+            content: [
+              {
+                type: "paragraph",
+                content: [{ type: "text", text: "Choose one." }],
+              },
+              {
+                type: "choiceList",
+                content: [
+                  {
+                    type: "choiceItem",
+                    content: [
+                      {
+                        type: "paragraph",
+                        content: [{ type: "text", text: "Option A" }],
+                      },
+                    ],
+                  },
+                  {
+                    type: "choiceItem",
+                    content: [{ type: "mathBlock", attrs: { latex: "L=M" } }],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: "questionItem",
+            attrs: {
+              kind: "written",
+              writtenMode: "blank",
+              writtenLines: 3,
+              writtenHeightPercent: 30,
+              writtenHeightCm: 7.2,
+              multiForceOneColumn: true,
+            },
+            content: [
+              {
+                type: "paragraph",
+                content: [{ type: "text", text: "Show your work." }],
+              },
+            ],
+          },
+        ],
       },
       { type: "paragraph", content: [] },
     ],

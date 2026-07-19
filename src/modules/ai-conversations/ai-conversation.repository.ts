@@ -329,6 +329,15 @@ export class AIConversationRepository implements AIConversationRepositoryPort {
         },
         include: { attachments: true },
       });
+      if (input.automaticTitle) {
+        await transaction.aIConversation.updateMany({
+          where: {
+            id: conversation.id,
+            title: input.automaticTitle.expectedTitle,
+          },
+          data: { title: input.automaticTitle.title },
+        });
+      }
       const updatedConversation = await transaction.aIConversation.update({
         where: { id: conversation.id },
         data: { lastMessageAt: now },

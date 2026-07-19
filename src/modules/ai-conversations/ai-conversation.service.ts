@@ -22,7 +22,7 @@ import {
 const MAX_CONTEXT_MESSAGES = 8;
 const MAX_CONTEXT_MESSAGE_CHARACTERS = 6_000;
 const MAX_CONTEXT_CHARACTERS = 48_000;
-const MAX_CONVERSATION_TITLE_CHARACTERS = 96;
+const MAX_AUTOMATIC_CONVERSATION_TITLE_CHARACTERS = 12;
 const CONVERSATION_PAGE_SIZE = 20;
 const MESSAGE_PAGE_SIZE = 30;
 
@@ -73,8 +73,27 @@ function safeTitle(instruction: string): string {
     .replace(/\s+/g, " ")
     .trim();
   const firstSentence = normalized.match(/^.+?[.!?。！？](?:\s|$)/)?.[0].trim();
-  const source = firstSentence || normalized || "New conversation";
-  return Array.from(source).slice(0, MAX_CONVERSATION_TITLE_CHARACTERS).join("").trim();
+  const source = firstSentence || normalized || "New chat";
+  return Array.from(source)
+    .slice(0, MAX_AUTOMATIC_CONVERSATION_TITLE_CHARACTERS)
+    .join("")
+    .trim();
+}
+
+function automaticTitle(result: AIWriterResult): string | null {
+  const candidate = result.kind === "compose"
+    ? result.suggestedTitle || result.summary
+    : result.changeSummary;
+  const normalized = candidate
+    .normalize("NFKC")
+    .replace(/\p{P}+/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return null;
+  return Array.from(normalized)
+    .slice(0, MAX_AUTOMATIC_CONVERSATION_TITLE_CHARACTERS)
+    .join("")
+    .trim() || null;
 }
 
 function clipText(value: string, maximum: number): string {
@@ -182,13 +201,14 @@ export class AIConversationService {
     const existingConversation = input.conversationId
       ? await this.requireOwnedConversation(input.documentId, input.conversationId)
       : null;
+    const provisionalTitle = existingConversation ? null : safeTitle(input.request.instruction);
     const intent = deriveIntent(input.request);
     const persistedUser = await this.repository.persistUserTurn({
       documentId: input.documentId,
       messageId: input.request.requestId,
       ...(existingConversation
         ? { conversationId: existingConversation.id }
-        : { newConversationTitle: safeTitle(input.request.instruction) }),
+        : { newConversationTitle: provisionalTitle! }),
       userMessage: {
         content: input.request.instruction,
         intent,
@@ -217,9 +237,18 @@ export class AIConversationService {
       options: input.request.options,
     };
     const result = await this.writer.execute(request, credential, signal);
+    const generatedTitle = provisionalTitle ? automaticTitle(result) : null;
     const persistedAssistant = await this.repository.persistAssistantTurn({
       conversationId: persistedUser.conversation.id,
       messageId: `${input.request.requestId}:assistant`,
+      ...(generatedTitle
+        ? {
+            automaticTitle: {
+              expectedTitle: provisionalTitle!,
+              title: generatedTitle,
+            },
+          }
+        : {}),
       assistantMessage: {
         content: assistantDisplayText(result),
         intent: request.intent,

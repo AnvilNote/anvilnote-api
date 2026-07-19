@@ -1,244 +1,289 @@
-# anvilnote-api
+# AnvilNote API
 
-`anvilnote-api` is the Node.js/Express backend for AnvilNote.
+`anvilnote-api` is the Node.js and Express application service for AnvilNote.
+It owns document persistence, projects, versions, template metadata, PDF and
+DOCX export orchestration, chart compilation requests, attachment text
+extraction, and the trusted HTTP boundary around `@anvilnote/ai-writer`.
 
-It owns:
+The backend is TypeScript running on Node.js. Typst supplies the Rust-based PDF
+engine; the API itself is not a Rust service.
 
-- document CRUD
-- template metadata CRUD
-- render job records
-- PDF file serving
-- CORS and HTTP concerns
-- invoking the dedicated renderer CLI
+## Responsibilities
 
-This backend is written in Node.js/Express. The “Rust-powered” part of AnvilNote refers to Typst, not to the backend implementation language.
+- Document, project, version, and template APIs
+- PostgreSQL and embedded Desktop SQLite runtime profiles
+- PDF render records and file serving
+- DOCX export through the dedicated exporter CLI
+- Function-plot SVG compilation through the charts CLI
+- Provider/model metadata and token/cost estimation
+- Smart Mode composition and selection rewrite application services
+- Attachment extraction for TXT, Markdown, text-layer PDF, and DOCX
+- Request cancellation and stable AI error mapping
+- Trusted credential resolution without persistent plaintext keys
+- Document-scoped AI conversation persistence and cursor pagination
 
-## Required Sibling Repos
+## Required sibling repositories
 
-The API expects this local layout:
+The source development layout is a polyrepo workspace:
 
-```txt
+```text
 parent-folder/
+  anvilnote-ai-writer/
   anvilnote-api/
-  anvilnote-renderer/
   anvilnote-web/
+  anvilnote-renderer/
+  anvilnote-docx-exporter/
+  anvilnote-charts/
+  anvilnote-desktop/
 ```
 
-The renderer path is configured with:
-
-```env
-ANVILNOTE_RENDERER_PATH="../anvilnote-renderer"
-```
+`anvilnote-ai-writer` is a `file:../anvilnote-ai-writer` library dependency.
+The renderer, DOCX exporter, and charts repositories are independent CLI
+boundaries. Web is the normal browser client, while Desktop builds and stages
+all of these siblings into the packaged local application.
 
 ## Stack
 
-- Node.js
-- Express.js
-- TypeScript
-- Prisma
-- PostgreSQL
-- Zod
-- `cors`
-- `helmet`
-- `morgan`
+- Node.js, Express 5, and TypeScript
+- Prisma 6
+- PostgreSQL 16 for standalone local development
+- SQLite through a separately generated Prisma client in Desktop
+- Zod 4
+- `@anvilnote/ai-writer`
+- Multer, Mammoth, and PDF.js for bounded attachment extraction
+- Helmet, CORS, and Morgan
+
+## Database profiles
+
+`prisma/schema.prisma` is the PostgreSQL source schema used by the standalone
+API development workflow and committed migrations. `prisma/sqlite.prisma`
+generates a separate client for the packaged Desktop sidecar. At Desktop
+runtime, `DATABASE_URL` is a local `file:` URL and the schema is initialized on
+first launch.
+
+This distinction is intentional: the API repository supports both a normal
+PostgreSQL service profile and an embedded SQLite Desktop profile.
 
 ## Setup
 
+Build AI Writer and the CLI siblings first:
+
 ```bash
+cd ../anvilnote-ai-writer
+pnpm install
+pnpm build
+
+cd ../anvilnote-renderer
+pnpm install
+pnpm build
+
+cd ../anvilnote-docx-exporter
+pnpm install
+pnpm build:desktop
+
+cd ../anvilnote-charts
+pnpm install
+pnpm build:desktop
+```
+
+Then start the API:
+
+```bash
+cd ../anvilnote-api
 pnpm install
 cp .env.example .env
 pnpm prisma:generate
 make dev
 ```
 
-Default API URL:
+`make dev` starts the PostgreSQL 16 Docker container, applies committed Prisma
+migrations, binds the API to `127.0.0.1`, and starts the TypeScript watcher.
+The default URL is `http://127.0.0.1:4000`.
 
-```txt
-http://localhost:4000
-```
-
-## Environment
+Important development values are documented in `.env.example`, including:
 
 ```env
-NODE_ENV=development
-PORT=4000
-
+HOST=127.0.0.1
 DATABASE_URL="postgresql://postgres:postgres@localhost:55432/anvilnote?schema=public"
-
-CORS_ORIGIN="http://localhost:3000,http://localhost:5173,http://localhost:5174"
-CORS_CREDENTIALS=true
-
-STORAGE_DIR="./storage"
-TYPST_STORAGE_DIR="./storage/typst"
-PDF_STORAGE_DIR="./storage/pdf"
-
+ANVILNOTE_BROWSER_SESSION_BYOK=true
 ANVILNOTE_RENDERER_PATH="../anvilnote-renderer"
-TYPST_BIN="typst"
-
-RENDER_RETENTION_HOURS=24
+ANVILNOTE_DOCX_EXPORTER_PATH="../anvilnote-docx-exporter"
+ANVILNOTE_CHARTS_PATH="../anvilnote-charts"
 ```
 
-## CORS
+Do not place a shared OpenAI key in `.env`. Local browser development passes a
+user-entered key for one request/session when the capability is enabled.
 
-Allowed origins are read from `CORS_ORIGIN` as a comma-separated list.
+## API endpoints
 
-The API also explicitly supports these local frontend origins by default:
-
-- `http://localhost:3000`
-- `http://localhost:5173`
-- `http://localhost:5174`
-
-Allowed methods:
-
-- `GET`
-- `POST`
-- `PUT`
-- `PATCH`
-- `DELETE`
-- `OPTIONS`
-
-Allowed headers:
-
-- `Content-Type`
-- `Authorization`
-- `X-Request-Id`
-- `X-AnvilNote-AI-Credential`
-- `X-AnvilNote-Desktop-Token`
-
-When `CORS_CREDENTIALS=true`, the API does not use wildcard origins.
-
-## Render Flow
-
-1. `POST /api/documents/:id/render`
-2. Load the document and optional template metadata from PostgreSQL
-3. Create a `RenderJob`
-4. Write a temporary render input JSON file
-5. Invoke the renderer CLI:
-
-```bash
-pnpm --dir ../anvilnote-renderer --silent render \
-  --input /absolute/path/to/render-input.json \
-  --output-dir /absolute/path/to/anvilnote-api/storage/pdf \
-  --work-dir /absolute/path/to/anvilnote-api/storage/typst
-```
-
-6. Parse the renderer stdout JSON
-7. Update the job status and store output paths
-8. Expose the PDF at `/files/pdf/<filename>.pdf`
-
-The API no longer owns BlockNote-to-Typst conversion, Typst escaping, Typst templates, or direct Typst compilation logic.
-
-## API Endpoints
+The following routes are registered by the current source.
 
 ### Health
 
 - `GET /api/health`
 
-### Documents
+### Documents and projects
 
 - `GET /api/documents`
 - `POST /api/documents`
 - `GET /api/documents/:id`
 - `PATCH /api/documents/:id`
 - `DELETE /api/documents/:id`
+- `GET /api/projects`
+- `POST /api/projects`
+- `PATCH /api/projects/:id`
+- `DELETE /api/projects/:id`
+
+### Document versions
+
+- `GET /api/documents/:id/versions`
+- `GET /api/documents/:id/versions/:versionId`
+- `POST /api/documents/:id/versions`
+- `POST /api/documents/:id/versions/:versionId/restore`
 
 ### Templates
 
 - `GET /api/templates`
-- `POST /api/templates`
-- `GET /api/templates/:id`
-- `PATCH /api/templates/:id`
-- `DELETE /api/templates/:id`
+- `GET /api/templates/:slug`
+- `GET /api/templates/:slug/preview`
 
-### Render
+Templates are file-backed renderer manifests. The API does not expose template
+create, update, or delete routes.
+
+### PDF, DOCX, and charts
 
 - `POST /api/documents/:id/render`
-- `GET /api/render-jobs/:id`
+- `GET /api/render-outputs/:id`
 - `GET /files/pdf/:filename`
+- `POST /api/documents/:id/export/docx`
+- `POST /api/charts/render`
+
+PDF rendering is synchronous. The render-output route reads a recorded terminal
+result rather than polling an asynchronous job.
 
 ### Smart Mode
 
-- `GET /api/ai/providers`
-- `POST /api/ai/estimate`
-- `POST /api/ai/test-connection`
-- `POST /api/ai/attachments/extract`
-- `POST /api/ai/compose`
-- `POST /api/ai/rewrite-selection`
-- `POST /api/ai/requests/:requestId/cancel`
+- `GET /api/ai/providers` — provider/model metadata, pricing, attachment limits,
+  and current runtime capability
+- `POST /api/ai/estimate` — provider-neutral token and cost estimate
+- `POST /api/ai/test-connection` — minimal credential/model connection test
+- `POST /api/ai/attachments/extract` — bounded multipart text extraction
+- `POST /api/ai/compose` — document composition
+- `POST /api/ai/rewrite-selection` — selected-fragment rewrite
+- `POST /api/ai/requests/:requestId/cancel` — cancel a registered request
+
+### Document conversations
+
 - `GET /api/documents/:documentId/ai-conversations`
 - `GET /api/documents/:documentId/ai-conversations/:conversationId/messages`
 - `POST /api/documents/:documentId/ai-conversations/turns`
-- `PATCH` / `DELETE` `/api/documents/:documentId/ai-conversations/:conversationId`
+- `PATCH /api/documents/:documentId/ai-conversations/:conversationId`
+- `DELETE /api/documents/:documentId/ai-conversations/:conversationId`
 
-Desktop-only, per-launch-token-protected key-profile routes live below
-`/api/ai/key-profiles`. They accept/store safeStorage ciphertext and return
-only masked profile metadata to renderer-facing callers; API never decrypts a
-profile.
+Conversation and message lists use cursor pagination. The API, not the browser,
+loads the bounded same-document history supplied to AI Writer. Browser-supplied
+assistant history and drafts are not trusted.
 
-`@anvilnote/ai-writer` owns prompts, policies, schemas, pricing, provider
-execution, retries, and OpenAI error mapping. Express owns strict request
-validation, request-scoped credential resolution, attachment extraction,
-cancellation, and stable HTTP errors. Routes never import OpenAI directly or
-log instructions, selected content, attachment text, credentials, or raw
-provider responses.
+### Desktop key profiles
 
-Conversation turns never trust browser-supplied history or assistant drafts.
-API loads only the newest eight messages for the requested document
-conversation, passes a bounded display-text projection to AI Writer, and saves
-only the verified assistant draft needed for later safe preview. Lists are
-cursor-paginated (20 conversations, 30 messages). `make dev` applies committed
-Postgres migrations before starting the watcher. Desktop turns may persist
-message-linked safe attachment metadata; public responses expose only the
-attachment ID, display filename, MIME type, and size, never the hash or storage
-key. Browser-development raw attachments remain request/session-only.
+The following routes require both Desktop runtime mode and the per-launch
+Desktop trust token:
 
-Local browser development uses a memory-only key and `make dev` binds the API
-to `127.0.0.1`. Desktop requests require the per-launch token and explicit
-Desktop runtime. Remote browser BYOK is disabled unless a deployment operator
-explicitly enables it behind HTTPS.
+- `GET /api/ai/key-profiles`
+- `POST /api/ai/key-profiles`
+- `PATCH /api/ai/key-profiles/:profileId`
+- `POST /api/ai/key-profiles/:profileId/activate`
+- `POST /api/ai/key-profiles/:profileId/deactivate`
+- `DELETE /api/ai/key-profiles/:profileId`
+- `GET /api/ai/key-profiles/active/:providerId/secret`
 
-Attachments are bounded in-memory multipart buffers: up to five files, 10 MB
-per file and 25 MB total. TXT/Markdown, text-layer PDF, and DOCX are supported;
-image-only PDF reports a warning and no OCR is performed.
+The database stores Electron `safeStorage` ciphertext and safe profile metadata.
+The API cannot decrypt a key. The active ciphertext route is a narrow
+main-process integration endpoint and is not exposed by the renderer preload
+bridge.
 
-## Example Requests
+## Attachment extraction
 
-Create a document:
+Smart Mode accepts up to five files, 10 MB per file, and 25 MB in total. The
+extractor supports:
+
+- UTF-8 `.txt`;
+- `.md` and `.markdown` as UTF-8 text;
+- text-layer `.pdf` through PDF.js;
+- `.docx` through Mammoth raw-text extraction.
+
+Extension and MIME type must agree. Password-protected PDFs fail clearly.
+Image-only or scanned PDFs return a warning with no extracted text; OCR is not
+performed. Extracted text is capped per file and in aggregate with explicit
+truncation warnings.
+
+## BYOK and credential handling
+
+The API does not ship or persist a shared OpenAI credential. It resolves a key
+at the trusted request boundary and passes it separately from the writer
+request to `@anvilnote/ai-writer/server`.
+
+- Direct browser development uses an explicitly enabled memory-only key and a
+  loopback-bound API.
+- Remote browser BYOK is disabled unless the deployment operator opts in behind
+  HTTPS.
+- Desktop main generates a per-launch trust token, decrypts the active
+  `safeStorage` profile only for the operation, and calls fixed loopback routes.
+- The API database may store ciphertext produced by Electron, but never
+  plaintext and never an application encryption key.
+- Provider keys, trust tokens, selected content, attachment text, instructions,
+  and raw model documents are not added to AI diagnostic metadata.
+
+Provider execution, strict Structured Outputs, retries, usage, pricing, and
+OpenAI error mapping remain inside `@anvilnote/ai-writer`. Automated API tests
+inject fake application services and do not make paid OpenAI calls.
+
+## Export flows
+
+### PDF
+
+1. The API loads the document and resolves its template metadata.
+2. It writes a render record and invokes `anvilnote-renderer/dist/cli.js`.
+3. The renderer converts canonical Tiptap JSON to Typst.
+4. Typst produces the PDF and generated source.
+5. The API records the result and serves the PDF below `/files/pdf`.
+
+### DOCX
+
+1. The API loads and unwraps the stored Tiptap `doc` node.
+2. It invokes the bundled `anvilnote-docx-exporter` CLI.
+3. The exporter converts Tiptap to Pandoc Markdown and OOXML extensions.
+4. Pandoc writes the DOCX, including native OMML equations.
+5. The API returns the DOCX as a file response.
+
+Renderer, DOCX exporter, and charts are command-line services, not separate
+HTTP servers. They never receive OpenAI credentials.
+
+## Commands
 
 ```bash
-curl -X POST http://localhost:4000/api/documents \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Lecture 01","content":[],"templateId":"lecture-note","metadata":{"course":"Algorithms"}}'
-```
-
-Render a document:
-
-```bash
-curl -X POST http://localhost:4000/api/documents/<DOCUMENT_ID>/render \
-  -H "Content-Type: application/json" \
-  -d '{"exportOptions":{"pageSize":"A4","fontPreset":"serif","includeMetadata":true}}'
-```
-
-Fetch the generated PDF:
-
-```bash
-curl -I http://localhost:4000/files/pdf/<filename>.pdf
-```
-
-## Running API + Renderer Together
-
-In one terminal:
-
-```bash
-cd ../anvilnote-renderer
-pnpm install
-```
-
-In another terminal:
-
-```bash
-cd ../anvilnote-api
 pnpm dev
+pnpm build
+pnpm build:desktop
+pnpm start
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm prisma:generate
+pnpm prisma:generate:sqlite
+pnpm prisma:migrate
+pnpm prisma:deploy
+pnpm prisma:studio
 ```
 
-The API will invoke the renderer CLI on demand. The renderer does not need a separate HTTP server.
+Useful Make targets include `make dev`, `make db-up`, `make db-down`,
+`make lint`, `make typecheck`, and `make build`.
+
+## Related repositories
+
+- [AnvilNote AI Writer](https://github.com/AnvilNote/anvilnote-ai-writer)
+- [AnvilNote Web](https://github.com/AnvilNote/anvilnote-web)
+- [AnvilNote Desktop](https://github.com/AnvilNote/anvilnote-desktop)
+- [AnvilNote Renderer](https://github.com/AnvilNote/anvilnote-renderer)
+- [AnvilNote DOCX Exporter](https://github.com/AnvilNote/anvilnote-docx-exporter)
+- [AnvilNote Charts](https://github.com/AnvilNote/anvilnote-charts)

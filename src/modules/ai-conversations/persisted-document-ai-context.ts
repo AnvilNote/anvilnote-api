@@ -89,6 +89,61 @@ function normalizeBlock(value: unknown): unknown {
     case "listItem":
     case "blockquote":
       return { type: value.type, content: content.map(normalizeBlock) };
+    case "callout": {
+      const unknownAttrs = Object.fromEntries(
+        Object.entries(attrs).filter(
+          ([key]) => !["kind", "title", "titleTouched"].includes(key),
+        ),
+      );
+      const title = typeof attrs.title === "string" ? attrs.title.trim() : attrs.title;
+      return {
+        type: "callout",
+        attrs: {
+          kind: attrs.kind,
+          title: title === "" || title === undefined ? null : title,
+          ...unknownAttrs,
+        },
+        content: content.map(normalizeBlock),
+      };
+    }
+    case "proof":
+    case "question":
+    case "choiceList":
+    case "choiceItem":
+      return {
+        type: value.type,
+        ...(Object.keys(attrs).length > 0 ? { attrs } : {}),
+        content: content.map(normalizeBlock),
+      };
+    case "questionItem": {
+      const unknownAttrs = Object.fromEntries(
+        Object.entries(attrs).filter(
+          ([key]) =>
+            ![
+              "kind",
+              "writtenMode",
+              "writtenLines",
+              "writtenHeightPercent",
+              "writtenHeightCm",
+              "multiForceOneColumn",
+              "stashedChoiceJSON",
+            ].includes(key),
+        ),
+      );
+      return {
+        type: "questionItem",
+        attrs: {
+          kind: attrs.kind,
+          writtenMode: attrs.writtenMode,
+          writtenLines: attrs.writtenLines,
+          writtenHeightPercent: attrs.writtenHeightPercent,
+          writtenHeightCm: attrs.writtenHeightCm ?? null,
+          multiForceOneColumn: attrs.multiForceOneColumn,
+          ...unknownAttrs,
+        },
+        content: content.map(normalizeBlock),
+      };
+    }
     case "orderedList":
       return {
         type: "orderedList",

@@ -160,6 +160,10 @@ export interface PersistUserTurnResult {
 export interface PersistAssistantTurnInput {
   conversationId: string;
   messageId: string;
+  automaticTitle?: {
+    expectedTitle: string;
+    title: string;
+  };
   assistantMessage: {
     content: string;
     intent: AIWriterIntent;
